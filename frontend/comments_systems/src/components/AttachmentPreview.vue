@@ -1,5 +1,3 @@
 <template>
-    <h1>
-        Attachment Preview Component
-    </h1>
+    <h1>asdsadsad</h1>
 </template>
