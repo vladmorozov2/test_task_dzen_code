@@ -23,7 +23,7 @@ export default {
   data() {
     return {
       ws: null,
-      localComments: [...this.comments] // створити локальну копію, щоб оновлювати динамічно
+      localComments: []  
     }
   },
   computed: {
@@ -65,7 +65,7 @@ export default {
 
       this.ws.onclose = () => {
         console.warn('WebSocket closed')
-        // тут можна реалізувати перепідключення
+      
       }
     }
   },
@@ -75,6 +75,14 @@ export default {
   beforeUnmount() {
     if (this.ws) {
       this.ws.close()
+    }
+  },
+  watch: {
+    comments: {
+      handler(newComments) {
+        this.localComments = [...newComments]
+      },
+      immediate: true
     }
   }
 }
