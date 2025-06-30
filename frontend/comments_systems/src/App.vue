@@ -9,6 +9,7 @@
       @sort-changed="handleSortChange"
       @page-changed="handlePageChange"
     />
+    
   </div>
 </template>
 

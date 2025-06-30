@@ -15,6 +15,7 @@ class CommentSerializer(serializers.Serializer):
     sender = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), required=False, allow_null=True
     )
+    username = serializers.CharField(source='sender.username', read_only=True)
 
     def create(self, validated_data):
         parent_comment = validated_data.get("parent_comment")

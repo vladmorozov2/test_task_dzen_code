@@ -58,7 +58,7 @@
 
       <!-- File Upload -->
       <div class="form-group">
-        <label>Attachment</label>
+        <label>Attachment123</label>
         <input
           type="file"
           ref="fileInput"
@@ -70,6 +70,11 @@
           <button type="button" @click="removePreview" class="remove-btn">×</button>
         </div>
         <div v-if="fileError" class="error-message">{{ fileError }}</div>
+      </div>
+      <div>
+        <AttachmentPreview>
+          
+        </AttachmentPreview>
       </div>
 
       <!-- Preview Button -->
@@ -109,6 +114,7 @@
 
 <script>
 import api from '../axios'
+import AttachmentPreview from './AttachmentPreview.vue'
 
 export default {
   name: 'CommentForm',

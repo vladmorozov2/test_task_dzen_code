@@ -4,6 +4,7 @@
     <div class="comment-id">Comment id: {{ comment.id }}</div>
     <div class="comment-created-at">Created at: {{ comment.created_at }}</div>
     <div class="comment-sender">Sender: {{ comment.sender }}</div>
+    <div class="comment-username">Username: {{ comment.username }}</div>
 
     <button @click="toggleReply" class="reply-btn">
       {{ showReply ? 'Cancel' : 'Reply' }}

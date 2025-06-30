@@ -20,13 +20,19 @@ export default {
   props: {
     comments: Array
   },
+  data() {
+    return {
+      ws: null,
+      localComments: [...this.comments] // створити локальну копію, щоб оновлювати динамічно
+    }
+  },
   computed: {
     rootComments() {
-      return this.comments.filter(c => c.parent_comment === null)
+      return this.localComments.filter(c => c.parent_comment === null)
     },
     childCommentsMap() {
       const map = {}
-      this.comments.forEach(comment => {
+      this.localComments.forEach(comment => {
         if (comment.parent_comment !== null) {
           if (!map[comment.parent_comment]) {
             map[comment.parent_comment] = []
@@ -35,6 +41,40 @@ export default {
         }
       })
       return map
+    }
+  },
+  methods: {
+    connectWebSocket() {
+      this.ws = new WebSocket('ws://localhost:8000/ws/comments/')
+
+      this.ws.onopen = () => {
+        console.log('WebSocket connected')
+      }
+
+      this.ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.type === 'new_comment') {
+          console.log('New comment received:', data.comment)
+          this.localComments.push(data.comment)
+        }
+      }
+
+      this.ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+
+      this.ws.onclose = () => {
+        console.warn('WebSocket closed')
+        // тут можна реалізувати перепідключення
+      }
+    }
+  },
+  mounted() {
+    this.connectWebSocket()
+  },
+  beforeUnmount() {
+    if (this.ws) {
+      this.ws.close()
     }
   }
 }

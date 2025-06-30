@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "user",
     "corsheaders",
+    "channels",
 ]
 
 MIDDLEWARE = [
@@ -57,7 +59,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = "comment_systems.urls"
 
 CORS_ALLOW_ALL_ORIGINS = True
-
 
 
 TEMPLATES = [
@@ -77,6 +78,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "comment_systems.wsgi.application"
+ASGI_APPLICATION = "comment_systems.asgi.application"
 
 
 # Database
@@ -89,6 +91,11 @@ DATABASES = {
     }
 }
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
