@@ -1,75 +1,52 @@
-<!-- src/components/CommentItem.vue -->
 <template>
-  <tr class="comment-item" :class="{'reply-comment': depth > 0}">
-    <td>{{ comment.username }}</td>
-    <td>{{ comment.email }}</td>
-    <td>{{ formatDate(comment.created_at) }}</td>
-    <td>
-      <div v-html="comment.text"></div>
-      <button v-if="depth < 3" @click="toggleReply" class="reply-btn">
-        {{ showReply ? 'Cancel' : 'Reply' }}
-      </button>
-      
-      <!-- Reply Form -->
-      <CommentForm 
-        v-if="showReply" 
-        class="reply-form"
-        @comment-added="handleCommentAdded"
+  <div :style="indentStyle" class="comment-item">
+    <div class="text">{{ comment.text }}</div>
+
+    <!-- Render children recursively -->
+    <div class="child-comments" v-if="childComments.length">
+      <CommentItem
+        v-for="child in childComments"
+        :key="child.id"
+        :comment="child"
+        :child-comments="childCommentsMap[child.id] || []"
+        :child-comments-map="childCommentsMap"
+        :depth="depth + 1"
       />
-    </td>
-    <td>
-      <AttachmentPreview :attachment="comment.attachment" />
-    </td>
-  </tr>
-  
-  <!-- Child Comments -->
-  <template v-if="comment.replies && comment.replies.length > 0">
-    <CommentItem 
-      v-for="reply in comment.replies" 
-      :key="reply.id" 
-      :comment="reply"
-      :depth="depth + 1"
-      @reply="handleReply"
-    />
-  </template>
+    </div>
+  </div>
 </template>
 
 <script>
-import CommentForm from './CommentForm.vue'
-import AttachmentPreview from './AttachmentPreview.vue'
-
 export default {
-  components: { CommentForm, AttachmentPreview },
+  name: 'CommentItem',
   props: {
     comment: Object,
+    childComments: Array,
+    childCommentsMap: Object,
     depth: {
       type: Number,
       default: 0
     }
   },
-  data() {
-    return {
-      showReply: false
-    }
-  },
-  methods: {
-    formatDate(dateString) {
-      return new Date(dateString).toLocaleString()
-    },
-    toggleReply() {
-      this.showReply = !this.showReply
-    },
-    handleCommentAdded() {
-      this.showReply = false
-      this.$emit('comment-added')
-    },
-    handleReply(comment) {
-      this.$emit('reply', comment)
+  computed: {
+    indentStyle() {
+      return {
+        marginLeft: `${this.depth * 20}px`
+      }
     }
   }
 }
 </script>
 
 <style scoped>
+.comment-item {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #f9f9f9;
+}
 
+.child-comments {
+  margin-top: 8px;
+}
 </style>

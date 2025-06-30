@@ -24,7 +24,7 @@ class CommentAPIView(APIView):
 
         # Пагінація
         paginator = PageNumberPagination()
-        paginator.page_size = int(request.query_params.get("per_page", 1))
+        paginator.page_size = int(request.query_params.get("per_page", 25))
         page = paginator.paginate_queryset(queryset, request)
 
         # Загальна кількість

@@ -14,9 +14,6 @@ class UserSerializer(serializers.Serializer):
         user.save()
         return user
 
-    def update(self, instance, validated_data):
-        # Logic to update a user instance
-        pass
     
 
   
