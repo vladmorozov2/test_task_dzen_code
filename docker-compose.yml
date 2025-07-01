@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8
+    container_name: comments_mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: comments_db
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: mysqlpass
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  backend:
+    build: ./backend/comment_systems
+    container_name: comments_backend
+    entrypoint: ["bash", "./wait-for-it.sh", "db:3306", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+    volumes:
+      - ./backend/comment_systems:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_NAME=comments_db
+      - DB_USER=mysqluser
+      - DB_PASSWORD=mysqlpass
+      - DB_HOST=db
+      - DB_PORT=3306
+
+  frontend:
+    build: ./frontend/comments_systems
+    container_name: comments_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/comments_systems:/app
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
