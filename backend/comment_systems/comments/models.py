@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.validators import FileExtensionValidator
+from django.core.validators import URLValidator, RegexValidator
 
 
 class Comment(models.Model):
@@ -18,17 +18,4 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name="comments",
     )
-    attachment = models.FileField(
-        upload_to="attachments/",
-        null=True,
-        blank=True,
-        validators=[
-            FileExtensionValidator(
-                allowed_extensions=["jpg", "jpeg", "png", "gif", "txt"]
-            )
-        ],
-    )
-
-    def save(self, *args, **kwargs):
-        self.is_reply = bool(self.parent_comment)
-        super().save(*args, **kwargs)
+    
