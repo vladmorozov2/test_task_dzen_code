@@ -67,7 +67,7 @@ export default {
       showChildren: true,
       lightboxVisible: false,
       currentImage: null,
-      baseUrl: 'http://localhost:8000' // має співпадати з базовою URL твоєї апі
+      baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
     }
   },
   computed: {

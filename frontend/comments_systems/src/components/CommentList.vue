@@ -4,16 +4,16 @@
       <thead>
         <tr>
           <th @click="setSort('username')">
-            User Name 
-            <SortIndicator field="username" :current-field="sortField" :direction="sortDirection"/>
+            User Name
+            <SortIndicator field="username" :current-field="sortField" :direction="sortDirection" />
           </th>
           <th @click="setSort('sender')">
-            E-mail 
-            <SortIndicator field="sender" :current-field="sortField" :direction="sortDirection"/>
+            E-mail
+            <SortIndicator field="sender" :current-field="sortField" :direction="sortDirection" />
           </th>
           <th @click="setSort('created_at')">
-            Date Added 
-            <SortIndicator field="created_at" :current-field="sortField" :direction="sortDirection"/>
+            Date Added
+            <SortIndicator field="created_at" :current-field="sortField" :direction="sortDirection" />
           </th>
           <th>Comment</th>
           <th>Attachments</th>
@@ -30,12 +30,8 @@
             <td>
               <div v-if="comment.attachment" class="attachment-cell">
                 <div v-if="isImageAttachment(comment.attachment)" class="image-attachment">
-                  <img 
-                    :src="getFullAttachmentUrl(comment.attachment)" 
-                    alt="Attachment"
-                    class="attachment-thumb"
-                    @click="openLightbox(getFullAttachmentUrl(comment.attachment))"
-                  >
+                  <img :src="getFullAttachmentUrl(comment.attachment)" alt="Attachment" class="attachment-thumb"
+                    @click="openLightbox(getFullAttachmentUrl(comment.attachment))">
                 </div>
                 <div v-else class="text-attachment">
                   <a :href="getFullAttachmentUrl(comment.attachment)" target="_blank" download>
@@ -49,46 +45,30 @@
               <button @click="toggleReply(comment.id)" class="reply-btn">
                 {{ replyingTo === comment.id ? 'Cancel' : 'Reply' }}
               </button>
-              <button 
-                v-if="childCommentsMap[comment.id]?.length"
-                @click="toggleReplies(comment.id)"
-                class="toggle-replies-btn"
-              >
+              <button v-if="childCommentsMap[comment.id]?.length" @click="toggleReplies(comment.id)"
+                class="toggle-replies-btn">
                 {{ showReplies[comment.id] ? 'Hide Replies' : `Show Replies (${childCommentsMap[comment.id].length})` }}
               </button>
             </td>
           </tr>
           <tr v-if="replyingTo === comment.id">
             <td colspan="6">
-              <CommentForm 
-                :parentId="comment.id" 
-                @submitted="handleReplySubmitted"
-                @cancel="replyingTo = null"
-              />
+              <CommentForm :parentId="comment.id" @submitted="handleReplySubmitted" @cancel="replyingTo = null" />
             </td>
           </tr>
           <tr v-if="showReplies[comment.id] && childCommentsMap[comment.id]?.length">
             <td colspan="6">
               <div class="child-comments">
-                <CommentItem
-                  v-for="child in childCommentsMap[comment.id]"
-                  :key="child.id"
-                  :comment="child"
-                  :child-comments="childCommentsMap[child.id] || []"
-                  :child-comments-map="childCommentsMap"
-                />
+                <CommentItem v-for="child in childCommentsMap[comment.id]" :key="child.id" :comment="child"
+                  :child-comments="childCommentsMap[child.id] || []" :child-comments-map="childCommentsMap" />
               </div>
             </td>
           </tr>
         </template>
       </tbody>
     </table>
-    
-    <Lightbox 
-      v-if="lightboxVisible" 
-      :imageUrl="currentImage" 
-      @close="lightboxVisible = false" 
-    />
+
+    <Lightbox v-if="lightboxVisible" :imageUrl="currentImage" @close="lightboxVisible = false" />
   </div>
 </template>
 
@@ -114,7 +94,7 @@ export default {
       showReplies: {},
       lightboxVisible: false,
       currentImage: null,
-      baseUrl: 'http://localhost:8000' // Update with your backend URL
+      baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
     }
   },
   computed: {
@@ -137,17 +117,17 @@ export default {
       return [...this.rootComments].sort((a, b) => {
         let valA = a[this.sortField]
         let valB = b[this.sortField]
-        
+
         if (this.sortField === 'created_at') {
           valA = new Date(valA)
           valB = new Date(valB)
         }
-        
+
         if (typeof valA === 'string') {
           valA = valA.toLowerCase()
           valB = valB.toLowerCase()
         }
-        
+
         if (valA < valB) return this.sortDirection === 'asc' ? -1 : 1
         if (valA > valB) return this.sortDirection === 'asc' ? 1 : -1
         return 0
@@ -173,7 +153,7 @@ export default {
       if (!attachmentPath) return ''
       return attachmentPath.split('/').pop()
     },
-    
+
     // Comment methods
     setSort(field) {
       if (this.sortField === field) {
@@ -204,7 +184,8 @@ export default {
       this.lightboxVisible = true
     },
     connectWebSocket() {
-      this.ws = new WebSocket('ws://localhost:8000/ws/comments/')
+      const wsUrl = import.meta.env.VITE_API_WS_URL || 'ws://localhost:8000'
+      this.ws = new WebSocket(`${wsUrl}/ws/comments/`)
 
       this.ws.onopen = () => {
         console.log('WebSocket connected')
@@ -253,7 +234,8 @@ export default {
   margin-bottom: 20px;
 }
 
-.comments-table th, .comments-table td {
+.comments-table th,
+.comments-table td {
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
