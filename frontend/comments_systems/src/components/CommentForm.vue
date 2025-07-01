@@ -58,7 +58,7 @@
 
       <!-- File Upload -->
       <div class="form-group">
-        <label>Attachment123</label>
+        <label>Attachment</label>
         <input
           type="file"
           ref="fileInput"
@@ -66,15 +66,17 @@
           accept="image/jpeg,image/png,image/gif,.txt"
         />
         <div v-if="previewImage" class="preview-container">
-          <img :src="previewImage" alt="Preview" class="preview-image" />
+          <img :src="previewImage" alt="Preview" class="preview-image" @click="openLightbox(previewImage)" />
           <button type="button" @click="removePreview" class="remove-btn">×</button>
         </div>
         <div v-if="fileError" class="error-message">{{ fileError }}</div>
-      </div>
-      <div>
-        <AttachmentPreview>
-          
-        </AttachmentPreview>
+        <div v-if="attachment" class="attachment-info">
+          <div v-if="attachment.type === 'text'">
+            <div class="file-icon">📄</div>
+            <div class="file-name">{{ attachment.name }}</div>
+            <div class="file-size">{{ formatFileSize(attachment.size) }}</div>
+          </div>
+        </div>
       </div>
 
       <!-- Preview Button -->
@@ -90,7 +92,14 @@
         <div class="preview-content">
           <div v-html="renderPreview()"></div>
           <div v-if="previewImage" class="preview-image-container">
-            <img :src="previewImage" alt="Preview" />
+            <img :src="previewImage" alt="Preview" @click="openLightbox(previewImage)" />
+          </div>
+          <div v-if="attachment && attachment.type === 'text'" class="text-preview">
+            <div class="file-icon">📄</div>
+            <div class="file-info">
+              <div class="file-name">{{ attachment.name }}</div>
+              <div class="file-size">{{ formatFileSize(attachment.size) }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -109,15 +118,22 @@
         </button>
       </div>
     </form>
+    
+    <Lightbox 
+      v-if="lightboxVisible" 
+      :imageUrl="currentImage" 
+      @close="lightboxVisible = false" 
+    />
   </div>
 </template>
 
 <script>
 import api from '../axios'
-import AttachmentPreview from './AttachmentPreview.vue'
+import Lightbox from './Lightbox.vue'
 
 export default {
   name: 'CommentForm',
+  components: { Lightbox },
   props: {
     parentId: {
       type: Number,
@@ -133,11 +149,13 @@ export default {
         text: ''
       },
       errors: {},
-      file: null,
+      attachment: null,
       previewImage: null,
       fileError: '',
       showPreview: false,
-      isSubmitting: false
+      isSubmitting: false,
+      lightboxVisible: false,
+      currentImage: null
     }
   },
   methods: {
@@ -148,33 +166,88 @@ export default {
       const validImageTypes = ['image/jpeg', 'image/png', 'image/gif']
       const maxImageSize = 100 * 1024 // 100KB
 
+      // Reset previous state
+      this.previewImage = null
+      this.attachment = null
+      this.fileError = ''
+
       if (validImageTypes.includes(file.type)) {
         if (file.size > maxImageSize) {
           this.fileError = 'Image size exceeds 100KB limit'
           return
         }
+        
+        const img = new Image()
         const reader = new FileReader()
+        
         reader.onload = (e) => {
-          this.previewImage = e.target.result
-          this.file = file
-          this.fileError = ''
+          img.src = e.target.result
+          
+          img.onload = () => {
+            
+            const maxWidth = 320
+            const maxHeight = 240
+            let width = img.width
+            let height = img.height
+            
+            if (width > maxWidth || height > maxHeight) {
+              const ratio = Math.min(maxWidth / width, maxHeight / height)
+              width = Math.floor(width * ratio)
+              height = Math.floor(height * ratio)
+              
+              const canvas = document.createElement('canvas')
+              canvas.width = width
+              canvas.height = height
+              const ctx = canvas.getContext('2d')
+              ctx.drawImage(img, 0, 0, width, height)
+              
+              this.previewImage = canvas.toDataURL(file.type)
+            } else {
+              this.previewImage = e.target.result
+            }
+            
+            this.attachment = {
+              type: 'image',
+              name: file.name,
+              size: file.size,
+              data: this.previewImage
+            }
+          }
         }
+        
         reader.readAsDataURL(file)
-      } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
         if (file.size > 100 * 1024) {
           this.fileError = 'Text file size exceeds 100KB limit'
           return
         }
-        this.file = file
-        this.fileError = ''
+        
+        this.attachment = {
+          type: 'text',
+          name: file.name,
+          size: file.size,
+          data: null
+        }
       } else {
         this.fileError = 'Invalid file type. Only JPG, PNG, GIF, or TXT allowed'
       }
     },
     removePreview() {
       this.previewImage = null
-      this.file = null
+      this.attachment = null
       this.$refs.fileInput.value = ''
+      this.fileError = ''
+    },
+    openLightbox(imageUrl) {
+      this.currentImage = imageUrl
+      this.lightboxVisible = true
+    },
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes'
+      const k = 1024
+      const sizes = ['Bytes', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i])
     },
     insertTag(tag) {
       const textarea = document.getElementById('text')
@@ -260,13 +333,22 @@ export default {
         formData.append('sender', 1)
         formData.append('sender_id', 1)
 
-
         if (this.parentId !== null) {
           formData.append('parent_comment', this.parentId)
         }
 
-        if (this.file) {
-          formData.append('attachment', this.file)
+        if (this.attachment) {
+          if (this.attachment.type === 'image') {
+            // Convert data URL to blob
+            const blob = this.dataURLtoBlob(this.attachment.data)
+            formData.append('attachment', blob, this.attachment.name)
+          } else {
+            // For text files, we need to get the file from input
+            const fileInput = this.$refs.fileInput
+            if (fileInput.files.length > 0) {
+              formData.append('attachment', fileInput.files[0])
+            }
+          }
         }
 
         await api.post('/api/comments/', formData, {
@@ -287,6 +369,18 @@ export default {
         this.isSubmitting = false
       }
     },
+    dataURLtoBlob(dataURL) {
+      const byteString = atob(dataURL.split(',')[1])
+      const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0]
+      const ab = new ArrayBuffer(byteString.length)
+      const ia = new Uint8Array(ab)
+      
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i)
+      }
+      
+      return new Blob([ab], { type: mimeString })
+    },
     resetForm() {
       this.form = {
         username: '',
@@ -300,8 +394,6 @@ export default {
   }
 }
 </script>
-
-
 
 <style scoped>
 .comment-form {
@@ -495,6 +587,7 @@ textarea {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
 .preview-image {
@@ -533,44 +626,41 @@ textarea {
   transform: rotate(90deg) scale(1.1);
 }
 
-.file-upload-container {
-  position: relative;
+.attachment-info {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.file-icon {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.file-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.file-size {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.text-preview {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f8f9fa;
   margin-top: 10px;
 }
 
-.file-upload-container input[type="file"] {
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.file-upload-label {
-  display: inline-block;
-  padding: 10px 20px;
-  background: #f8f9fa;
-  border: 2px dashed #d6dbdf;
-  border-radius: 8px;
-  color: #7f8c8d;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  text-align: center;
-  width: 100%;
-}
-
-.file-upload-label:hover {
-  background: #ecf0f1;
-  border-color: #3498db;
-  color: #3498db;
-}
-
-.file-upload-label i {
-  margin-right: 8px;
-  font-size: 1.2rem;
+.file-info {
+  margin-left: 10px;
 }
 
 @keyframes fadeIn {

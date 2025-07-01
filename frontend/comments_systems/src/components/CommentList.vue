@@ -16,6 +16,7 @@
             <SortIndicator field="created_at" :current-field="sortField" :direction="sortDirection"/>
           </th>
           <th>Comment</th>
+          <th>Attachments</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -26,6 +27,22 @@
             <td>{{ comment.sender }}</td>
             <td>{{ formatDate(comment.created_at) }}</td>
             <td>{{ comment.text }}</td>
+            <td>
+              <div v-if="comment.attachment" class="attachment-cell">
+                <div v-if="comment.attachment.type === 'image'">
+                  <img 
+                    :src="comment.attachment.data" 
+                    alt="Attachment"
+                    class="attachment-thumb"
+                    @click="openLightbox(comment.attachment.data)"
+                  >
+                </div>
+                <div v-else class="text-attachment">
+                  <div class="file-icon">📄</div>
+                  <div class="file-name">{{ comment.attachment.name }}</div>
+                </div>
+              </div>
+            </td>
             <td>
               <button @click="toggleReply(comment.id)" class="reply-btn">
                 {{ replyingTo === comment.id ? 'Cancel' : 'Reply' }}
@@ -40,7 +57,7 @@
             </td>
           </tr>
           <tr v-if="replyingTo === comment.id">
-            <td colspan="5">
+            <td colspan="6">
               <CommentForm 
                 :parentId="comment.id" 
                 @submitted="handleReplySubmitted"
@@ -49,7 +66,7 @@
             </td>
           </tr>
           <tr v-if="showReplies[comment.id] && childCommentsMap[comment.id]?.length">
-            <td colspan="5">
+            <td colspan="6">
               <div class="child-comments">
                 <CommentItem
                   v-for="child in childCommentsMap[comment.id]"
@@ -64,6 +81,12 @@
         </template>
       </tbody>
     </table>
+    
+    <Lightbox 
+      v-if="lightboxVisible" 
+      :imageUrl="currentImage" 
+      @close="lightboxVisible = false" 
+    />
   </div>
 </template>
 
@@ -71,10 +94,11 @@
 import CommentItem from './CommentItem.vue'
 import CommentForm from './CommentForm.vue'
 import SortIndicator from './SortIndicator.vue'
+import Lightbox from './Lightbox.vue'
 
 export default {
   name: 'CommentList',
-  components: { CommentItem, CommentForm, SortIndicator },
+  components: { CommentItem, CommentForm, SortIndicator, Lightbox },
   props: {
     comments: Array
   },
@@ -85,7 +109,9 @@ export default {
       sortField: 'created_at',
       sortDirection: 'desc',
       replyingTo: null,
-      showReplies: {}
+      showReplies: {},
+      lightboxVisible: false,
+      currentImage: null
     }
   },
   computed: {
@@ -138,7 +164,6 @@ export default {
       this.replyingTo = this.replyingTo === commentId ? null : commentId
     },
     toggleReplies(commentId) {
-      // FIXED: Use direct assignment instead of this.$set
       this.showReplies = {
         ...this.showReplies,
         [commentId]: !this.showReplies[commentId]
@@ -150,6 +175,10 @@ export default {
     formatDate(dateString) {
       const date = new Date(dateString)
       return date.toLocaleString()
+    },
+    openLightbox(imageUrl) {
+      this.currentImage = imageUrl
+      this.lightboxVisible = true
     },
     connectWebSocket() {
       this.ws = new WebSocket('ws://localhost:8000/ws/comments/')
@@ -248,5 +277,38 @@ export default {
 .toggle-replies-btn:hover {
   background-color: #10b981;
   color: white;
+}
+
+.attachment-cell {
+  max-width: 100px;
+}
+
+.attachment-thumb {
+  max-width: 60px;
+  max-height: 40px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.attachment-thumb:hover {
+  transform: scale(1.1);
+}
+
+.text-attachment {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.file-icon {
+  font-size: 16px;
+}
+
+.file-name {
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
