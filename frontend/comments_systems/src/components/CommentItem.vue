@@ -8,17 +8,20 @@
     <div class="comment-text">{{ comment.text }}</div>
 
     <div v-if="comment.attachment" class="attachment-container">
-      <div v-if="comment.attachment.type === 'image'">
-        <img :src="comment.attachment.data" alt="Attachment" class="attachment-image"
-          @click="openLightbox(comment.attachment.data)">
-        <div class="attachment-name">{{ comment.attachment.name }}</div>
+      <div v-if="isImageAttachment(comment.attachment)" class="image-attachment">
+        <img 
+          :src="getFullAttachmentUrl(comment.attachment)" 
+          alt="Attachment" 
+          class="attachment-image"
+          @click="openLightbox(getFullAttachmentUrl(comment.attachment))"
+        >
+        <div class="attachment-name">{{ getFileName(comment.attachment) }}</div>
       </div>
       <div v-else class="text-attachment">
-        <a :href="comment.attachment.data || '#'" :download="comment.attachment.name" class="attachment-link">
+        <a :href="getFullAttachmentUrl(comment.attachment)" target="_blank" download>
           <div class="file-icon">📄</div>
           <div class="file-info">
-            <div class="file-name">{{ comment.attachment.name }}</div>
-            <div class="file-size">{{ formatFileSize(comment.attachment.size) }}</div>
+            <div class="file-name">{{ getFileName(comment.attachment) }}</div>
           </div>
         </a>
       </div>
@@ -34,15 +37,29 @@
     </div>
 
     <div v-if="showReply" class="reply-form">
-      <CommentForm :parentId="comment.id" @submitted="onReplySubmitted" @cancel="toggleReply" />
+      <CommentForm 
+        :parentId="comment.id" 
+        @submitted="onReplySubmitted" 
+        @cancel="toggleReply" 
+      />
     </div>
 
     <div class="child-comments" v-if="childComments.length && showChildren">
-      <CommentItem v-for="child in childComments" :key="child.id" :comment="child"
-        :child-comments="childCommentsMap[child.id] || []" :child-comments-map="childCommentsMap" :depth="depth + 1" />
+      <CommentItem 
+        v-for="child in childComments" 
+        :key="child.id" 
+        :comment="child"
+        :child-comments="childCommentsMap[child.id] || []" 
+        :child-comments-map="childCommentsMap" 
+        :depth="depth + 1" 
+      />
     </div>
 
-    <Lightbox v-if="lightboxVisible" :imageUrl="currentImage" @close="lightboxVisible = false" />
+    <Lightbox 
+      v-if="lightboxVisible" 
+      :imageUrl="currentImage" 
+      @close="lightboxVisible = false" 
+    />
   </div>
 </template>
 
@@ -67,7 +84,8 @@ export default {
       showReply: false,
       showChildren: true,
       lightboxVisible: false,
-      currentImage: null
+      currentImage: null,
+      baseUrl: 'http://localhost:8000' // Should match CommentList's baseUrl
     }
   },
   computed: {
@@ -76,6 +94,26 @@ export default {
     }
   },
   methods: {
+    // Attachment handling methods
+    isImageAttachment(attachmentPath) {
+      if (!attachmentPath) return false
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+      return imageExtensions.some(ext => attachmentPath.toLowerCase().endsWith(ext))
+    },
+    getFullAttachmentUrl(attachmentPath) {
+      if (!attachmentPath) return ''
+      // Handle both full URLs and relative paths
+      if (attachmentPath.startsWith('http')) {
+        return attachmentPath
+      }
+      return `${this.baseUrl}${attachmentPath}`
+    },
+    getFileName(attachmentPath) {
+      if (!attachmentPath) return ''
+      return attachmentPath.split('/').pop()
+    },
+
+    // Comment methods
     toggleReply() {
       this.showReply = !this.showReply
     },
@@ -86,13 +124,6 @@ export default {
     formatDate(dateString) {
       const date = new Date(dateString)
       return date.toLocaleString()
-    },
-    formatFileSize(bytes) {
-      if (bytes === 0) return '0 Bytes'
-      const k = 1024
-      const sizes = ['Bytes', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i])
     },
     openLightbox(imageUrl) {
       this.currentImage = imageUrl
@@ -125,12 +156,23 @@ export default {
   color: #333;
 }
 
+.comment-text {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
 .attachment-container {
   margin: 10px 0;
   padding: 10px;
   background-color: #fff;
   border: 1px solid #eee;
   border-radius: 4px;
+}
+
+.image-attachment {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .attachment-image {
@@ -162,16 +204,9 @@ export default {
   background: #f8f9fa;
 }
 
-.attachment-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: inherit;
-}
-
 .file-icon {
   font-size: 24px;
+  margin-right: 10px;
 }
 
 .file-info {
@@ -181,11 +216,7 @@ export default {
 
 .file-name {
   font-weight: bold;
-}
-
-.file-size {
-  font-size: 0.8em;
-  color: #666;
+  word-break: break-all;
 }
 
 .comment-actions {
@@ -230,5 +261,11 @@ export default {
   border-left: 3px solid #3b82f6;
   background: #fff;
   border-radius: 0 4px 4px 0;
+}
+
+.child-comments {
+  margin-top: 15px;
+  border-left: 2px solid #ddd;
+  padding-left: 15px;
 }
 </style>
