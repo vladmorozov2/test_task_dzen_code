@@ -6,36 +6,21 @@
       <!-- Username Field -->
       <div class="form-group">
         <label for="username">Username*</label>
-        <input
-          type="text"
-          id="username"
-          v-model="form.username"
-          :class="{ error: errors.username }"
-        />
+        <input type="text" id="username" v-model="form.username" :class="{ error: errors.username }" />
         <div v-if="errors.username" class="error-message">{{ errors.username }}</div>
       </div>
 
       <!-- Email Field -->
       <div class="form-group">
         <label for="email">Email*</label>
-        <input
-          type="email"
-          id="email"
-          v-model="form.email"
-          :class="{ error: errors.email }"
-        />
+        <input type="email" id="email" v-model="form.email" :class="{ error: errors.email }" />
         <div v-if="errors.email" class="error-message">{{ errors.email }}</div>
       </div>
 
       <!-- Homepage Field -->
       <div class="form-group">
         <label for="homepage">Homepage</label>
-        <input
-          type="url"
-          id="homepage"
-          v-model="form.homepage"
-          placeholder="https://example.com"
-        />
+        <input type="url" id="homepage" v-model="form.homepage" placeholder="https://example.com" />
       </div>
 
       <!-- Text Editor -->
@@ -47,34 +32,19 @@
           <button type="button" @click="insertTag('code')" title="Code"><code>Code</code></button>
           <button type="button" @click="insertLink" title="Link">🔗</button>
         </div>
-        <textarea
-          id="text"
-          v-model="form.text"
-          :class="{ error: errors.text }"
-          rows="5"
-        ></textarea>
+        <textarea id="text" v-model="form.text" :class="{ error: errors.text }" rows="5"></textarea>
         <div v-if="errors.text" class="error-message">{{ errors.text }}</div>
       </div>
 
       <!-- File Upload -->
       <div class="form-group">
-        <label>Attachment123</label>
-        <input
-          type="file"
-          ref="fileInput"
-          @change="handleFileUpload"
-          accept="image/jpeg,image/png,image/gif,.txt"
-        />
+        <label>Attachment</label>
+        <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/jpeg,image/png,image/gif,.txt" />
         <div v-if="previewImage" class="preview-container">
-          <img :src="previewImage" alt="Preview" class="preview-image" />
+          <img :src="previewImage" alt="Preview" class="preview-image" @click="openLightbox" style="cursor: pointer;" />
           <button type="button" @click="removePreview" class="remove-btn">×</button>
         </div>
         <div v-if="fileError" class="error-message">{{ fileError }}</div>
-      </div>
-      <div>
-        <AttachmentPreview>
-          
-        </AttachmentPreview>
       </div>
 
       <!-- Preview Button -->
@@ -109,12 +79,20 @@
         </button>
       </div>
     </form>
+
+    <!-- Lightbox Modal -->
+    <div v-if="lightboxVisible" class="lightbox-overlay" @click.self="closeLightbox">
+      <div class="lightbox-content">
+        <button class="lightbox-close" @click="closeLightbox">×</button>
+        <img :src="previewImage" alt="Full Image" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import api from '../axios'
-import AttachmentPreview from './AttachmentPreview.vue'
+// import AttachmentPreview from './AttachmentPreview.vue' // не используется, убрал для чистоты
 
 export default {
   name: 'CommentForm',
@@ -137,7 +115,8 @@ export default {
       previewImage: null,
       fileError: '',
       showPreview: false,
-      isSubmitting: false
+      isSubmitting: false,
+      lightboxVisible: false
     }
   },
   methods: {
@@ -146,34 +125,65 @@ export default {
       if (!file) return
 
       const validImageTypes = ['image/jpeg', 'image/png', 'image/gif']
-      const maxImageSize = 100 * 1024 // 100KB
 
       if (validImageTypes.includes(file.type)) {
-        if (file.size > maxImageSize) {
-          this.fileError = 'Image size exceeds 100KB limit'
-          return
-        }
+    
+        const img = new Image()
         const reader = new FileReader()
+
         reader.onload = (e) => {
-          this.previewImage = e.target.result
-          this.file = file
-          this.fileError = ''
+          img.onload = () => {
+            const MAX_WIDTH = 320
+            const MAX_HEIGHT = 240
+            let width = img.width
+            let height = img.height
+
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+              const widthRatio = MAX_WIDTH / width
+              const heightRatio = MAX_HEIGHT / height
+              const ratio = Math.min(widthRatio, heightRatio)
+              width = width * ratio
+              height = height * ratio
+            }
+
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0, width, height)
+
+            const resizedDataUrl = canvas.toDataURL(file.type)
+
+            this.previewImage = resizedDataUrl
+
+            fetch(resizedDataUrl)
+              .then(res => res.blob())
+              .then(blob => {
+                this.file = new File([blob], file.name, { type: file.type })
+                this.fileError = ''
+              })
+          }
+          img.src = e.target.result
         }
         reader.readAsDataURL(file)
       } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        // Для текстовых файлов ограничиваем размер 100 КБ
         if (file.size > 100 * 1024) {
           this.fileError = 'Text file size exceeds 100KB limit'
           return
         }
         this.file = file
+        this.previewImage = null
         this.fileError = ''
       } else {
         this.fileError = 'Invalid file type. Only JPG, PNG, GIF, or TXT allowed'
       }
     },
+
     removePreview() {
       this.previewImage = null
       this.file = null
+      this.fileError = ''
       this.$refs.fileInput.value = ''
     },
     insertTag(tag) {
@@ -260,7 +270,6 @@ export default {
         formData.append('sender', 1)
         formData.append('sender_id', 1)
 
-
         if (this.parentId !== null) {
           formData.append('parent_comment', this.parentId)
         }
@@ -296,12 +305,16 @@ export default {
       }
       this.removePreview()
       this.showPreview = false
+    },
+    openLightbox() {
+      this.lightboxVisible = true
+    },
+    closeLightbox() {
+      this.lightboxVisible = false
     }
   }
 }
 </script>
-
-
 
 <style scoped>
 .comment-form {
@@ -533,63 +546,70 @@ textarea {
   transform: rotate(90deg) scale(1.1);
 }
 
-.file-upload-container {
-  position: relative;
-  margin-top: 10px;
-}
-
-.file-upload-container input[type="file"] {
-  position: absolute;
-  left: 0;
+/* Lightbox styles */
+.lightbox-overlay {
+  position: fixed;
   top: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease forwards;
 }
 
-.file-upload-label {
-  display: inline-block;
-  padding: 10px 20px;
-  background: #f8f9fa;
-  border: 2px dashed #d6dbdf;
-  border-radius: 8px;
-  color: #7f8c8d;
-  font-weight: 500;
-  transition: all 0.3s ease;
+.lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  background: white;
+}
+
+.lightbox-content img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  border-radius: 10px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
   cursor: pointer;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  line-height: 34px;
   text-align: center;
-  width: 100%;
+  transition: background 0.3s ease;
+  user-select: none;
+  z-index: 10;
 }
 
-.file-upload-label:hover {
-  background: #ecf0f1;
-  border-color: #3498db;
-  color: #3498db;
+.lightbox-close:hover {
+  background: rgba(0, 0, 0, 0.9);
 }
 
-.file-upload-label i {
-  margin-right: 8px;
-  font-size: 1.2rem;
-}
-
+/* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+  from {
+    opacity: 0;
+  }
 
-@media (max-width: 768px) {
-  .comment-form {
-    padding: 20px;
-  }
-  
-  .editor-toolbar {
-    flex-wrap: wrap;
-  }
-  
-  .submit-btn {
-    width: 100%;
-    padding: 16px;
+  to {
+    opacity: 1;
   }
 }
 </style>

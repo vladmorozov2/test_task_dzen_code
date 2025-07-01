@@ -1,8 +1,13 @@
 <template>
   <div :style="indentStyle" class="comment-item">
-    <div class="comment-text">Comment text:{{ comment.text }}</div>
+    <div class="comment-text" v-html="comment.text"></div> <!-- если text с HTML -->
+    <div>{{ comment }}</div>
+    <div v-if="comment.attachment_url" class="comment-attachment">
+      <img :src="comment.attachment_url" alt="Attachment" class="attachment-image" />
+    </div>
+    
     <div class="comment-id">Comment id: {{ comment.id }}</div>
-    <div class="comment-created-at">Created at: {{ comment.created_at }}</div>
+    <div class="comment-created-at">Created at: {{ formatDate(comment.created_at) }}</div>
     <div class="comment-sender">Sender: {{ comment.sender }}</div>
     <div class="comment-username">Username: {{ comment.username }}</div>
 
@@ -10,7 +15,6 @@
       {{ showReply ? 'Cancel' : 'Reply' }}
     </button>
 
-    <!-- Форма відповіді -->
     <div v-if="showReply" class="reply-form">
       <CommentForm
         :parentId="comment.id"
@@ -19,7 +23,6 @@
       />
     </div>
 
-    <!-- Відображення дочірніх коментарів рекурсивно -->
     <div class="child-comments" v-if="childComments.length">
       <CommentItem
         v-for="child in childComments"
@@ -28,7 +31,7 @@
         :child-comments="childCommentsMap[child.id] || []"
         :child-comments-map="childCommentsMap"
         :depth="depth + 1"
-        @reply-submitted="$emit('reply-submitted')"
+        @reply-submitted="handleReplySubmitted"
       />
     </div>
   </div>
@@ -64,10 +67,14 @@ export default {
       this.showReply = !this.showReply
     },
     onReplySubmitted(newComment) {
-      // Закриваємо форму
       this.showReply = false
-      // Повідомляємо батька, щоб обновити список
       this.$emit('reply-submitted', newComment)
+    },
+    handleReplySubmitted(newComment) {
+      this.$emit('reply-submitted', newComment)
+    },
+    formatDate(dateStr) {
+      return new Date(dateStr).toLocaleString()
     }
   }
 }
@@ -79,6 +86,18 @@ export default {
   padding: 10px;
   margin-bottom: 10px;
   background: #fafafa;
+}
+
+.comment-attachment {
+  margin: 10px 0;
+}
+
+.attachment-image {
+  max-width: 320px; /* ограничение ширины */
+  max-height: 240px; /* ограничение высоты */
+  border-radius: 8px;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .reply-btn {

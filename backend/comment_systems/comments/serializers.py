@@ -13,9 +13,23 @@ class CommentSerializer(serializers.Serializer):
     )
     is_reply = serializers.BooleanField(read_only=True)
     sender = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), required=False, allow_null=True
+        queryset=User.objects.all(), required=True  # Сделаем обязательным
     )
-    username = serializers.CharField(source='sender.username', read_only=True)
+    username = serializers.CharField(source="sender.username", read_only=True)
+    attachment = serializers.FileField(
+        required=False,
+        allow_null=True,
+        use_url=True,
+    )
+
+    def validate_attachment(self, value):
+
+        if value and value.name.lower().endswith(".txt"):
+            max_size = 100 * 1024
+            if value.size > max_size:
+                raise serializers.ValidationError("Text file size exceeds 100KB limit.")
+
+        return value
 
     def create(self, validated_data):
         parent_comment = validated_data.get("parent_comment")
@@ -27,5 +41,6 @@ class CommentSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         instance.text = validated_data.get("text", instance.text)
+
         instance.save()
         return instance
