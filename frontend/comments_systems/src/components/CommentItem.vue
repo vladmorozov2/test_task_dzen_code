@@ -5,16 +5,12 @@
       <span class="email">{{ comment.sender }}</span>
       <span class="date">{{ formatDate(comment.created_at) }}</span>
     </div>
-    <div class="comment-text">{{ comment.text }}</div>
+    <div class="comment-text" v-html="comment.text"></div>
 
     <div v-if="comment.attachment" class="attachment-container">
       <div v-if="isImageAttachment(comment.attachment)" class="image-attachment">
-        <img 
-          :src="getFullAttachmentUrl(comment.attachment)" 
-          alt="Attachment" 
-          class="attachment-image"
-          @click="openLightbox(getFullAttachmentUrl(comment.attachment))"
-        >
+        <img :src="getFullAttachmentUrl(comment.attachment)" alt="Attachment" class="attachment-image"
+          @click="openLightbox(getFullAttachmentUrl(comment.attachment))">
         <div class="attachment-name">{{ getFileName(comment.attachment) }}</div>
       </div>
       <div v-else class="text-attachment">
@@ -37,29 +33,15 @@
     </div>
 
     <div v-if="showReply" class="reply-form">
-      <CommentForm 
-        :parentId="comment.id" 
-        @submitted="onReplySubmitted" 
-        @cancel="toggleReply" 
-      />
+      <CommentForm :parentId="comment.id" @submitted="onReplySubmitted" @cancel="toggleReply" />
     </div>
 
     <div class="child-comments" v-if="childComments.length && showChildren">
-      <CommentItem 
-        v-for="child in childComments" 
-        :key="child.id" 
-        :comment="child"
-        :child-comments="childCommentsMap[child.id] || []" 
-        :child-comments-map="childCommentsMap" 
-        :depth="depth + 1" 
-      />
+      <CommentItem v-for="child in childComments" :key="child.id" :comment="child"
+        :child-comments="childCommentsMap[child.id] || []" :child-comments-map="childCommentsMap" :depth="depth + 1" />
     </div>
 
-    <Lightbox 
-      v-if="lightboxVisible" 
-      :imageUrl="currentImage" 
-      @close="lightboxVisible = false" 
-    />
+    <Lightbox v-if="lightboxVisible" :imageUrl="currentImage" @close="lightboxVisible = false" />
   </div>
 </template>
 
@@ -85,7 +67,7 @@ export default {
       showChildren: true,
       lightboxVisible: false,
       currentImage: null,
-      baseUrl: 'http://localhost:8000' // Should match CommentList's baseUrl
+      baseUrl: 'http://localhost:8000' // має співпадати з базовою URL твоєї апі
     }
   },
   computed: {
@@ -94,7 +76,6 @@ export default {
     }
   },
   methods: {
-    // Attachment handling methods
     isImageAttachment(attachmentPath) {
       if (!attachmentPath) return false
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
@@ -102,7 +83,6 @@ export default {
     },
     getFullAttachmentUrl(attachmentPath) {
       if (!attachmentPath) return ''
-      // Handle both full URLs and relative paths
       if (attachmentPath.startsWith('http')) {
         return attachmentPath
       }
@@ -112,8 +92,6 @@ export default {
       if (!attachmentPath) return ''
       return attachmentPath.split('/').pop()
     },
-
-    // Comment methods
     toggleReply() {
       this.showReply = !this.showReply
     },

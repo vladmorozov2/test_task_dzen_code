@@ -36,6 +36,7 @@
           v-model="form.homepage"
           placeholder="https://example.com"
         />
+        <div v-if="errors.homepage" class="error-message">{{ errors.homepage }}</div>
       </div>
 
       <!-- Text Editor -->
@@ -50,10 +51,15 @@
         <textarea
           id="text"
           v-model="form.text"
-          :class="{ error: errors.text }"
+          :class="{ error: errors.text || htmlErrors.length }"
           rows="5"
         ></textarea>
         <div v-if="errors.text" class="error-message">{{ errors.text }}</div>
+        <div v-if="htmlErrors.length" class="error-message">
+          <ul>
+            <li v-for="(error, index) in htmlErrors" :key="index">{{ error }}</li>
+          </ul>
+        </div>
       </div>
 
       <!-- File Upload -->
@@ -149,6 +155,7 @@ export default {
         text: ''
       },
       errors: {},
+      htmlErrors: [],
       attachment: null,
       previewImage: null,
       fileError: '',
@@ -159,6 +166,119 @@ export default {
     }
   },
   methods: {
+    validateHTML() {
+      this.htmlErrors = []
+      const text = this.form.text
+      
+      // 1. Check for allowed tags only
+      const allowedTags = ['a', 'code', 'i', 'strong']
+      const tagRegex = /<\/?([a-z]+)[^>]*>/gi
+      let match
+      const foundTags = new Set()
+
+      while ((match = tagRegex.exec(text)) !== null) {
+        const tagName = match[1].toLowerCase()
+        if (!allowedTags.includes(tagName)) {
+          this.htmlErrors.push(`Disallowed HTML tag: <${tagName}>`)
+        }
+        foundTags.add(tagName)
+      }
+
+      // 2. Check for proper tag nesting and closing
+      const stack = []
+      const fullTagRegex = /<\/?([a-z]+)[^>]*>/gi
+      let result
+      let lastIndex = 0
+
+      while ((result = fullTagRegex.exec(text)) !== null) {
+        const fullTag = result[0]
+        const tagName = result[1].toLowerCase()
+        
+        // Validate attributes for this tag
+        const attrErrors = this.validateTagAttributes(fullTag, tagName)
+        if (attrErrors.length) {
+          this.htmlErrors.push(...attrErrors)
+        }
+
+        if (fullTag.startsWith('</')) {
+          // Closing tag
+          if (stack.length === 0) {
+            this.htmlErrors.push(`Unmatched closing tag: </${tagName}>`)
+          } else if (stack[stack.length - 1] !== tagName) {
+            this.htmlErrors.push(`Tag mismatch: expected </${stack[stack.length - 1]}>, found </${tagName}>`)
+          } else {
+            stack.pop()
+          }
+        } else {
+          // Opening tag
+          stack.push(tagName)
+        }
+      }
+
+      // Check for unclosed tags
+      if (stack.length > 0) {
+        stack.forEach(tag => {
+          this.htmlErrors.push(`Unclosed tag: <${tag}>`)
+        })
+      }
+
+      return this.htmlErrors.length === 0
+    },
+
+    validateTagAttributes(tag, tagName) {
+      const errors = []
+      
+      // Special handling for <a> tags
+      if (tagName === 'a') {
+        // Check for required href attribute
+        const hasHref = /href=["']([^"']*)["']/i.test(tag)
+        if (!hasHref) {
+          errors.push('<a> tag must have href attribute')
+        }
+
+        // Check for allowed attributes only
+        const allowedAttrs = ['href', 'title']
+        const attrRegex = /\s([a-z-]+)=["']/gi
+        let attrMatch
+        
+        while ((attrMatch = attrRegex.exec(tag)) !== null) {
+          const attrName = attrMatch[1].toLowerCase()
+          if (!allowedAttrs.includes(attrName)) {
+            errors.push(`Disallowed attribute in <a> tag: ${attrName}`)
+          }
+        }
+
+        // Validate href value if present
+        const hrefMatch = tag.match(/href=["']([^"']*)["']/i)
+        if (hrefMatch && !this.isValidUrl(hrefMatch[1])) {
+          errors.push(`Invalid URL in href attribute: ${hrefMatch[1]}`)
+        }
+      } 
+      // For other allowed tags, no attributes permitted
+      else if (tag.includes('=')) {
+        errors.push(`<${tagName}> tag should not have any attributes`)
+      }
+
+      return errors
+    },
+
+    isValidUrl(url) {
+      if (!url) return false
+      
+      // Simple check for dangerous protocols
+      if (url.trim().toLowerCase().startsWith('javascript:')) {
+        return false
+      }
+      
+      try {
+        // Basic URL validation - extend as needed
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
+    },
+
     handleFileUpload(event) {
       const file = event.target.files[0]
       if (!file) return
@@ -232,16 +352,19 @@ export default {
         this.fileError = 'Invalid file type. Only JPG, PNG, GIF, or TXT allowed'
       }
     },
+
     removePreview() {
       this.previewImage = null
       this.attachment = null
       this.$refs.fileInput.value = ''
       this.fileError = ''
     },
+
     openLightbox(imageUrl) {
       this.currentImage = imageUrl
       this.lightboxVisible = true
     },
+
     formatFileSize(bytes) {
       if (bytes === 0) return '0 Bytes'
       const k = 1024
@@ -249,6 +372,7 @@ export default {
       const i = Math.floor(Math.log(bytes) / Math.log(k))
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i])
     },
+
     insertTag(tag) {
       const textarea = document.getElementById('text')
       const start = textarea.selectionStart
@@ -273,17 +397,22 @@ export default {
         textarea.focus()
       }, 0)
     },
+
     insertLink() {
       this.insertTag('a')
     },
+
     togglePreview() {
       this.showPreview = !this.showPreview
     },
+
     renderPreview() {
       return this.form.text
     },
+
     validateForm() {
       this.errors = {}
+      this.htmlErrors = []
       let isValid = true
 
       if (!this.form.username) {
@@ -315,10 +444,16 @@ export default {
       if (!this.form.text) {
         this.errors.text = 'Comment text is required'
         isValid = false
+      } else {
+        // Validate HTML content
+        if (!this.validateHTML()) {
+          isValid = false
+        }
       }
 
       return isValid
     },
+
     async submitForm() {
       if (!this.validateForm()) return
 
@@ -364,11 +499,13 @@ export default {
           this.errors = error.response.data.errors
         } else {
           console.error('Error submitting comment:', error)
+          this.errors.text = 'Error submitting comment. Please try again.'
         }
       } finally {
         this.isSubmitting = false
       }
     },
+
     dataURLtoBlob(dataURL) {
       const byteString = atob(dataURL.split(',')[1])
       const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0]
@@ -381,6 +518,7 @@ export default {
       
       return new Blob([ab], { type: mimeString })
     },
+
     resetForm() {
       this.form = {
         username: '',
@@ -390,6 +528,7 @@ export default {
       }
       this.removePreview()
       this.showPreview = false
+      this.htmlErrors = []
     }
   }
 }
@@ -570,14 +709,15 @@ textarea {
   font-size: 0.9rem;
   margin-top: 8px;
   font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 5px;
 }
 
-.error-message::before {
-  content: "⚠️";
-  font-size: 0.9rem;
+.error-message ul {
+  margin: 5px 0;
+  padding-left: 20px;
+}
+
+.error-message li {
+  margin-bottom: 3px;
 }
 
 .preview-container {
