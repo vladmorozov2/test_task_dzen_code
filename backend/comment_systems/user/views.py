@@ -13,6 +13,7 @@ class UserAPIView(APIView):
 
     def post(self, request):
         data = request.data
+        print("Received data:", data)
         serializer = UserSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
