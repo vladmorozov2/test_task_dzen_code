@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+env/
+venv/
+ENV/
+.venv/
+
+# Django
+*.sqlite3
+db.sqlite3
+*.log
+media/
+staticfiles/
+static/
+*.pot
+*.pyc
+
+# MySQL / DB
+*.sql
+
+# IDEs
+.vscode/
+.idea/
+
+# Docker
+**/Dockerfile
+**/docker-compose.override.yml
+**/docker-compose.override.yaml
+**/docker-compose.yml
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# PyCharm
+*.iml
+.idea/
+out/
+
+# Node modules (якщо є frontend)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Coverage reports
+htmlcov/
+.coverage
+
+# VSCode settings
+.vscode/
+
+# Environment variables files
+.env
