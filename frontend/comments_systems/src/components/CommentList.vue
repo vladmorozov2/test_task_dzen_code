@@ -29,17 +29,19 @@
             <td>{{ comment.text }}</td>
             <td>
               <div v-if="comment.attachment" class="attachment-cell">
-                <div v-if="comment.attachment.type === 'image'">
+                <div v-if="isImageAttachment(comment.attachment)" class="image-attachment">
                   <img 
-                    :src="comment.attachment.data" 
+                    :src="getFullAttachmentUrl(comment.attachment)" 
                     alt="Attachment"
                     class="attachment-thumb"
-                    @click="openLightbox(comment.attachment.data)"
+                    @click="openLightbox(getFullAttachmentUrl(comment.attachment))"
                   >
                 </div>
                 <div v-else class="text-attachment">
-                  <div class="file-icon">📄</div>
-                  <div class="file-name">{{ comment.attachment.name }}</div>
+                  <a :href="getFullAttachmentUrl(comment.attachment)" target="_blank" download>
+                    <div class="file-icon">📄</div>
+                    <div class="file-name">{{ getFileName(comment.attachment) }}</div>
+                  </a>
                 </div>
               </div>
             </td>
@@ -111,7 +113,8 @@ export default {
       replyingTo: null,
       showReplies: {},
       lightboxVisible: false,
-      currentImage: null
+      currentImage: null,
+      baseUrl: 'http://localhost:8000' // Update with your backend URL
     }
   },
   computed: {
@@ -152,6 +155,26 @@ export default {
     }
   },
   methods: {
+    // Attachment handling methods
+    isImageAttachment(attachmentPath) {
+      if (!attachmentPath) return false
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+      return imageExtensions.some(ext => attachmentPath.toLowerCase().endsWith(ext))
+    },
+    getFullAttachmentUrl(attachmentPath) {
+      if (!attachmentPath) return ''
+      // Handle both full URLs and relative paths
+      if (attachmentPath.startsWith('http')) {
+        return attachmentPath
+      }
+      return `${this.baseUrl}${attachmentPath}`
+    },
+    getFileName(attachmentPath) {
+      if (!attachmentPath) return ''
+      return attachmentPath.split('/').pop()
+    },
+    
+    // Comment methods
     setSort(field) {
       if (this.sortField === field) {
         this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc'
