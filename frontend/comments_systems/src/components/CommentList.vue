@@ -26,7 +26,7 @@
             <td>{{ comment.username }}</td>
             <td>{{ comment.sender }}</td>
             <td>{{ formatDate(comment.created_at) }}</td>
-            <td>{{ comment.text }}</td>
+            <td v-html="comment.text"></td>
             <td>
               <div v-if="comment.attachment" class="attachment-cell">
                 <div v-if="isImageAttachment(comment.attachment)" class="image-attachment">
