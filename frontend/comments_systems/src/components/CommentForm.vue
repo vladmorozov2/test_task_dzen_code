@@ -215,7 +215,7 @@ export default {
         }
       }
 
-      // Check for unclosed tags
+
       if (stack.length > 0) {
         stack.forEach(tag => {
           this.htmlErrors.push(`Unclosed tag: <${tag}>`)
@@ -228,15 +228,15 @@ export default {
     validateTagAttributes(tag, tagName) {
       const errors = []
       
-      // Special handling for <a> tags
+
       if (tagName === 'a') {
-        // Check for required href attribute
+      
         const hasHref = /href=["']([^"']*)["']/i.test(tag)
         if (!hasHref) {
           errors.push('<a> tag must have href attribute')
         }
 
-        // Check for allowed attributes only
+   
         const allowedAttrs = ['href', 'title']
         const attrRegex = /\s([a-z-]+)=["']/gi
         let attrMatch
@@ -248,13 +248,12 @@ export default {
           }
         }
 
-        // Validate href value if present
+   
         const hrefMatch = tag.match(/href=["']([^"']*)["']/i)
         if (hrefMatch && !this.isValidUrl(hrefMatch[1])) {
           errors.push(`Invalid URL in href attribute: ${hrefMatch[1]}`)
         }
       } 
-      // For other allowed tags, no attributes permitted
       else if (tag.includes('=')) {
         errors.push(`<${tagName}> tag should not have any attributes`)
       }
@@ -265,13 +264,13 @@ export default {
     isValidUrl(url) {
       if (!url) return false
       
-      // Simple check for dangerous protocols
+     
       if (url.trim().toLowerCase().startsWith('javascript:')) {
         return false
       }
       
       try {
-        // Basic URL validation - extend as needed
+       
         new URL(url)
         return true
       } catch {
@@ -284,9 +283,9 @@ export default {
       if (!file) return
 
       const validImageTypes = ['image/jpeg', 'image/png', 'image/gif']
-      const maxImageSize = 100 * 1024 // 100KB
+      const maxImageSize = 100 * 1024
 
-      // Reset previous state
+      
       this.previewImage = null
       this.attachment = null
       this.fileError = ''
