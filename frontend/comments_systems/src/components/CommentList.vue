@@ -185,6 +185,7 @@ export default {
     },
     connectWebSocket() {
       const wsUrl = import.meta.env.VITE_API_WS_URL || 'ws://localhost:8000'
+      console.log('Connecting to WebSocket at:', wsUrl)
       this.ws = new WebSocket(`${wsUrl}/ws/comments/`)
 
       this.ws.onopen = () => {
