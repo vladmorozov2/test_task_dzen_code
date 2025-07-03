@@ -1,4 +1,4 @@
-version: "3.9"
+# docker-compose.yml
 
 services:
   db:
@@ -14,11 +14,13 @@ services:
       - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
+    networks:
+      - comment_network
 
   backend:
     build: ./backend/comment_systems
     container_name: comments_backend
-    entrypoint: ["bash", "./wait-for-it.sh", "db:3306", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+    entrypoint: ["bash", "/app/wait-for-it.sh", "db:3306", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
     volumes:
       - ./backend/comment_systems:/app
     ports:
@@ -31,6 +33,8 @@ services:
       - DB_PASSWORD=mysqlpass
       - DB_HOST=db
       - DB_PORT=3306
+    networks:
+      - comment_network
 
   frontend:
     build: ./frontend/comments_systems
@@ -40,11 +44,16 @@ services:
     volumes:
       - ./frontend/comments_systems:/app
     environment:
-      - VITE_API_BASE_URL=http://backend:8000
-      - VITE_WS_BASE_URL=ws://backend:8000
+      - VITE_API_BASE_URL=http://localhost:8000  
+      - VITE_WS_BASE_URL=ws://localhost:8000
     command: sh -c "npm install && npm run dev"
     depends_on:
       - backend
+    networks:
+      - comment_network
 
 volumes:
   mysql_data:
+
+networks:
+  comment_network:
