@@ -194,7 +194,7 @@ export default {
       }
       
       this.ws = new WebSocket(`${wsUrl}/ws/comments/`);
-
+      console.log('WebSocket instance created:', this.ws);
       this.ws.onopen = () => {
         console.log('WebSocket connected')
         this.wsConnected = true;
