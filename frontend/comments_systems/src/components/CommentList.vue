@@ -87,6 +87,7 @@ export default {
   data() {
     return {
       ws: null,
+      wsConnected: false,
       localComments: [],
       sortField: 'created_at',
       sortDirection: 'desc',
@@ -94,7 +95,8 @@ export default {
       showReplies: {},
       lightboxVisible: false,
       currentImage: null,
-      baseUrl: import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000'
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+      wsBaseUrl: import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000'
     }
   },
   computed: {
@@ -119,11 +121,9 @@ export default {
         let valB = b[this.sortField]
 
         if (this.sortField === 'created_at') {
-          valA = new Date(valA)
-          valB = new Date(valB)
-        }
-
-        if (typeof valA === 'string') {
+          valA = new Date(valA).getTime()
+          valB = new Date(valB).getTime()
+        } else if (typeof valA === 'string') {
           valA = valA.toLowerCase()
           valB = valB.toLowerCase()
         }
@@ -147,7 +147,8 @@ export default {
       if (attachmentPath.startsWith('http')) {
         return attachmentPath
       }
-      return `${this.baseUrl}${attachmentPath}`
+      // Use API base URL for attachments
+      return `${this.apiBaseUrl}${attachmentPath}`
     },
     getFileName(attachmentPath) {
       if (!attachmentPath) return ''
@@ -184,43 +185,59 @@ export default {
       this.lightboxVisible = true
     },
     connectWebSocket() {
-      const wsUrl = import.meta.env.VITE_API_WS_URL || 'ws://localhost:8000'
+      const wsUrl = this.wsBaseUrl;
       console.log('Connecting to WebSocket at:', wsUrl)
-      this.ws = new WebSocket(`${wsUrl}/ws/comments/`)
+      
+      // Close existing connection if any
+      if (this.ws) {
+        this.ws.close();
+      }
+      
+      this.ws = new WebSocket(`${wsUrl}/ws/comments/`);
 
       this.ws.onopen = () => {
         console.log('WebSocket connected')
-      }
+        this.wsConnected = true;
+      };
 
       this.ws.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        if (data.type === 'new_comment') {
-          console.log('New comment received:', data.comment)
-          this.localComments.push(data.comment)
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'new_comment') {
+            console.log('New comment received:', data.comment);
+            // Add to beginning of list
+            this.localComments = [data.comment, ...this.localComments];
+          }
+        } catch (e) {
+          console.error('Error parsing WebSocket message:', e);
         }
-      }
+      };
 
       this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
-      }
+        console.error('WebSocket error:', error);
+        this.wsConnected = false;
+      };
 
       this.ws.onclose = () => {
-        console.warn('WebSocket closed')
-      }
+        console.log('WebSocket closed');
+        this.wsConnected = false;
+        // Attempt reconnect after 3 seconds
+        setTimeout(() => this.connectWebSocket(), 3000);
+      };
     }
   },
   mounted() {
-    this.connectWebSocket()
+    this.connectWebSocket();
   },
   beforeUnmount() {
     if (this.ws) {
-      this.ws.close()
+      this.ws.close();
     }
   },
   watch: {
     comments: {
       handler(newComments) {
-        this.localComments = [...newComments]
+        this.localComments = [...newComments];
       },
       immediate: true
     }
