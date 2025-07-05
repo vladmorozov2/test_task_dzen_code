@@ -6,36 +6,21 @@
       <!-- Username Field -->
       <div class="form-group">
         <label for="username">Username*</label>
-        <input
-          type="text"
-          id="username"
-          v-model="form.username"
-          :class="{ error: errors.username }"
-        />
+        <input type="text" id="username" v-model="form.username" :class="{ error: errors.username }" />
         <div v-if="errors.username" class="error-message">{{ errors.username }}</div>
       </div>
 
       <!-- Email Field -->
       <div class="form-group">
         <label for="email">Email*</label>
-        <input
-          type="email"
-          id="email"
-          v-model="form.email"
-          :class="{ error: errors.email }"
-        />
+        <input type="email" id="email" v-model="form.email" :class="{ error: errors.email }" />
         <div v-if="errors.email" class="error-message">{{ errors.email }}</div>
       </div>
 
       <!-- Homepage Field -->
       <div class="form-group">
         <label for="homepage">Homepage</label>
-        <input
-          type="url"
-          id="homepage"
-          v-model="form.homepage"
-          placeholder="https://example.com"
-        />
+        <input type="url" id="homepage" v-model="form.homepage" placeholder="https://example.com" />
         <div v-if="errors.homepage" class="error-message">{{ errors.homepage }}</div>
       </div>
 
@@ -48,12 +33,8 @@
           <button type="button" @click="insertTag('code')" title="Code"><code>Code</code></button>
           <button type="button" @click="insertLink" title="Link">🔗</button>
         </div>
-        <textarea
-          id="text"
-          v-model="form.text"
-          :class="{ error: errors.text || htmlErrors.length }"
-          rows="5"
-        ></textarea>
+        <textarea id="text" v-model="form.text" :class="{ error: errors.text || htmlErrors.length }"
+          rows="5"></textarea>
         <div v-if="errors.text" class="error-message">{{ errors.text }}</div>
         <div v-if="htmlErrors.length" class="error-message">
           <ul>
@@ -65,12 +46,7 @@
       <!-- File Upload -->
       <div class="form-group">
         <label>Attachment</label>
-        <input
-          type="file"
-          ref="fileInput"
-          @change="handleFileUpload"
-          accept="image/jpeg,image/png,image/gif,.txt"
-        />
+        <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/jpeg,image/png,image/gif,.txt" />
         <div v-if="previewImage" class="preview-container">
           <img :src="previewImage" alt="Preview" class="preview-image" @click="openLightbox(previewImage)" />
           <button type="button" @click="removePreview" class="remove-btn">×</button>
@@ -124,12 +100,8 @@
         </button>
       </div>
     </form>
-    
-    <Lightbox 
-      v-if="lightboxVisible" 
-      :imageUrl="currentImage" 
-      @close="lightboxVisible = false" 
-    />
+
+    <Lightbox v-if="lightboxVisible" :imageUrl="currentImage" @close="lightboxVisible = false" />
   </div>
 </template>
 
@@ -169,7 +141,7 @@ export default {
     validateHTML() {
       this.htmlErrors = []
       const text = this.form.text
-      
+
       // 1. Check for allowed tags only
       const allowedTags = ['a', 'code', 'i', 'strong']
       const tagRegex = /<\/?([a-z]+)[^>]*>/gi
@@ -193,7 +165,7 @@ export default {
       while ((result = fullTagRegex.exec(text)) !== null) {
         const fullTag = result[0]
         const tagName = result[1].toLowerCase()
-        
+
         // Validate attributes for this tag
         const attrErrors = this.validateTagAttributes(fullTag, tagName)
         if (attrErrors.length) {
@@ -227,20 +199,20 @@ export default {
 
     validateTagAttributes(tag, tagName) {
       const errors = []
-      
+
 
       if (tagName === 'a') {
-      
+
         const hasHref = /href=["']([^"']*)["']/i.test(tag)
         if (!hasHref) {
           errors.push('<a> tag must have href attribute')
         }
 
-   
+
         const allowedAttrs = ['href', 'title']
         const attrRegex = /\s([a-z-]+)=["']/gi
         let attrMatch
-        
+
         while ((attrMatch = attrRegex.exec(tag)) !== null) {
           const attrName = attrMatch[1].toLowerCase()
           if (!allowedAttrs.includes(attrName)) {
@@ -248,12 +220,12 @@ export default {
           }
         }
 
-   
+
         const hrefMatch = tag.match(/href=["']([^"']*)["']/i)
         if (hrefMatch && !this.isValidUrl(hrefMatch[1])) {
           errors.push(`Invalid URL in href attribute: ${hrefMatch[1]}`)
         }
-      } 
+      }
       else if (tag.includes('=')) {
         errors.push(`<${tagName}> tag should not have any attributes`)
       }
@@ -263,14 +235,14 @@ export default {
 
     isValidUrl(url) {
       if (!url) return false
-      
-     
+
+
       if (url.trim().toLowerCase().startsWith('javascript:')) {
         return false
       }
-      
+
       try {
-       
+
         new URL(url)
         return true
       } catch {
@@ -285,7 +257,7 @@ export default {
       const validImageTypes = ['image/jpeg', 'image/png', 'image/gif']
       const maxImageSize = 100 * 1024
 
-      
+
       this.previewImage = null
       this.attachment = null
       this.fileError = ''
@@ -295,36 +267,36 @@ export default {
           this.fileError = 'Image size exceeds 100KB limit'
           return
         }
-        
+
         const img = new Image()
         const reader = new FileReader()
-        
+
         reader.onload = (e) => {
           img.src = e.target.result
-          
+
           img.onload = () => {
-            
+
             const maxWidth = 320
             const maxHeight = 240
             let width = img.width
             let height = img.height
-            
+
             if (width > maxWidth || height > maxHeight) {
               const ratio = Math.min(maxWidth / width, maxHeight / height)
               width = Math.floor(width * ratio)
               height = Math.floor(height * ratio)
-              
+
               const canvas = document.createElement('canvas')
               canvas.width = width
               canvas.height = height
               const ctx = canvas.getContext('2d')
               ctx.drawImage(img, 0, 0, width, height)
-              
+
               this.previewImage = canvas.toDataURL(file.type)
             } else {
               this.previewImage = e.target.result
             }
-            
+
             this.attachment = {
               type: 'image',
               name: file.name,
@@ -333,14 +305,14 @@ export default {
             }
           }
         }
-        
+
         reader.readAsDataURL(file)
       } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
         if (file.size > 100 * 1024) {
           this.fileError = 'Text file size exceeds 100KB limit'
           return
         }
-        
+
         this.attachment = {
           type: 'text',
           name: file.name,
@@ -485,11 +457,7 @@ export default {
           }
         }
 
-        await api.post('/api/comments/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        })
+        await api.post('/api/comments/', formData,)
 
         this.resetForm()
         this.$emit('submitted')
@@ -510,11 +478,11 @@ export default {
       const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0]
       const ab = new ArrayBuffer(byteString.length)
       const ia = new Uint8Array(ab)
-      
+
       for (let i = 0; i < byteString.length; i++) {
         ia[i] = byteString.charCodeAt(i)
       }
-      
+
       return new Blob([ab], { type: mimeString })
     },
 
@@ -803,19 +771,26 @@ textarea {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {
   .comment-form {
     padding: 20px;
   }
-  
+
   .editor-toolbar {
     flex-wrap: wrap;
   }
-  
+
   .submit-btn {
     width: 100%;
     padding: 16px;

@@ -3,12 +3,20 @@ from rest_framework.views import APIView
 from .models import User
 from .serializers import UserSerializer
 from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 class UserAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+
     def get(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
+        user_id = request.user.id if request.user.is_authenticated else None
+        print("User ID:", user_id, flush=True)
+        print("Headers:", request.headers, flush=True)
+        user = User.objects.all().filter(id=user_id).first()
+        serializer = UserSerializer(
+            user,
+        )
         return Response(serializer.data)
 
     def post(self, request):

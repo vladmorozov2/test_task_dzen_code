@@ -1,4 +1,3 @@
-<!-- src/App.vue -->
 <template>
   <div class="app-container">
     <router-view />
@@ -6,22 +5,30 @@
 </template>
 
 <script>
+import { onMounted } from 'vue'
+import { useAuthStore } from './store/auth'
+
 export default {
   name: 'App',
+  setup() {
+    const auth = useAuthStore()
+
+    onMounted(() => {
+      if (auth.isAuthenticated) {
+        auth.fetchUser()
+      }
+    })
+  },
 }
 </script>
 
 <style scoped>
-
 .app-container {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  background-color: #f8f9fa;
+  background-color: #f7f7f7;
   min-height: 100vh;
 }
-
-/* ...інші стилі залишаються без змін */
 </style>

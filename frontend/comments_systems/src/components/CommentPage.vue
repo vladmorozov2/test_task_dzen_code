@@ -2,20 +2,15 @@
 <template>
   <div>
     <CommentForm @comment-added="fetchComments" ref="commentForm" />
-    <CommentList 
-      ref="commentList"
-      :comments="comments"
-      :pagination="pagination"
-      @sort-changed="handleSortChange"
-      @page-changed="handlePageChange"
-    />
+    <CommentList ref="commentList" :comments="comments" :pagination="pagination" @sort-changed="handleSortChange"
+      @page-changed="handlePageChange" />
   </div>
 </template>
 
 <script>
 import CommentForm from '@/components/CommentForm.vue'
 import CommentList from '@/components/CommentList.vue'
-import api from '@/axios'
+import api from '../axios'
 
 export default {
   components: { CommentForm, CommentList },
