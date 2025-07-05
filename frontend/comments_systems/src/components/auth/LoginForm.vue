@@ -19,7 +19,7 @@ const router = useRouter()
 const onSubmit = async () => {
     try {
         await auth.login({ username: username.value, password: password.value })
-        router.push('/')
+        router.push('/comments')
     } catch (error) {
         alert('Login failed')
     }

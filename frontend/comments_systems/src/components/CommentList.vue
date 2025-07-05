@@ -24,7 +24,7 @@
         <template v-for="comment in sortedRootComments" :key="comment.id">
           <tr class="root-comment">
             <td>{{ comment.username }}</td>
-            <td>{{ comment.sender }}</td>
+            <td>{{ comment.email }}</td>
             <td>{{ formatDate(comment.created_at) }}</td>
             <td v-html="comment.text"></td>
             <td>

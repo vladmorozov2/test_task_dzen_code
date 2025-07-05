@@ -5,9 +5,9 @@ import CommentPage from './components/CommentPage.vue'
 
 
 const routes = [
-    { path: '/', component: CommentPage },
+    { path: '/comments', component: CommentPage },
     { path: '/login', component: LoginPage },
-    { path: '/register', component: RegisterPage },
+    { path: '/', component: RegisterPage },
 ]
 
 export default createRouter({

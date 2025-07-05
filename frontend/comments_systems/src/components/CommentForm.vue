@@ -3,28 +3,7 @@
     <h2>{{ parentId !== null ? 'Reply to Comment' : 'Add New Comment' }}</h2>
 
     <form @submit.prevent="submitForm">
-      <!-- Username Field -->
-      <div class="form-group">
-        <label for="username">Username*</label>
-        <input type="text" id="username" v-model="form.username" :class="{ error: errors.username }" />
-        <div v-if="errors.username" class="error-message">{{ errors.username }}</div>
-      </div>
 
-      <!-- Email Field -->
-      <div class="form-group">
-        <label for="email">Email*</label>
-        <input type="email" id="email" v-model="form.email" :class="{ error: errors.email }" />
-        <div v-if="errors.email" class="error-message">{{ errors.email }}</div>
-      </div>
-
-      <!-- Homepage Field -->
-      <div class="form-group">
-        <label for="homepage">Homepage</label>
-        <input type="url" id="homepage" v-model="form.homepage" placeholder="https://example.com" />
-        <div v-if="errors.homepage" class="error-message">{{ errors.homepage }}</div>
-      </div>
-
-      <!-- Text Editor -->
       <div class="form-group">
         <label for="text">Comment*</label>
         <div class="editor-toolbar">
@@ -121,9 +100,6 @@ export default {
   data() {
     return {
       form: {
-        username: '',
-        email: '',
-        homepage: '',
         text: ''
       },
       errors: {},
@@ -142,7 +118,6 @@ export default {
       this.htmlErrors = []
       const text = this.form.text
 
-      // 1. Check for allowed tags only
       const allowedTags = ['a', 'code', 'i', 'strong']
       const tagRegex = /<\/?([a-z]+)[^>]*>/gi
       let match
@@ -160,7 +135,6 @@ export default {
       const stack = []
       const fullTagRegex = /<\/?([a-z]+)[^>]*>/gi
       let result
-      let lastIndex = 0
 
       while ((result = fullTagRegex.exec(text)) !== null) {
         const fullTag = result[0]
@@ -352,10 +326,11 @@ export default {
 
       let newText = ''
       if (tag === 'a') {
-        newText = `<a href="${this.form.homepage || 'https://example.com'}" title="">${selectedText || 'link'}</a>`
+        newText = `<a href="https://example.com" title="">${selectedText || 'link'}</a>`
       } else {
         newText = `<${tag}>${selectedText || tag}</${tag}>`
       }
+
 
       this.form.text =
         this.form.text.substring(0, start) +
@@ -386,37 +361,13 @@ export default {
       this.htmlErrors = []
       let isValid = true
 
-      if (!this.form.username) {
-        this.errors.username = 'Username is required'
-        isValid = false
-      } else if (!/^[a-zA-Z0-9]+$/.test(this.form.username)) {
-        this.errors.username = 'Only Latin letters and numbers allowed'
-        isValid = false
-      }
 
-      if (!this.form.email) {
-        this.errors.email = 'Email is required'
-        isValid = false
-      } else if (!/\S+@\S+\.\S+/.test(this.form.email)) {
-        this.errors.email = 'Invalid email format'
-        isValid = false
-      }
 
-      if (
-        this.form.homepage &&
-        !/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(
-          this.form.homepage
-        )
-      ) {
-        this.errors.homepage = 'Invalid URL format'
-        isValid = false
-      }
 
       if (!this.form.text) {
         this.errors.text = 'Comment text is required'
         isValid = false
       } else {
-        // Validate HTML content
         if (!this.validateHTML()) {
           isValid = false
         }
@@ -432,12 +383,9 @@ export default {
 
       try {
         const formData = new FormData()
-        formData.append('username', this.form.username)
-        formData.append('email', this.form.email)
-        formData.append('homepage', this.form.homepage)
+
         formData.append('text', this.form.text)
-        formData.append('sender', 1)
-        formData.append('sender_id', 1)
+
 
         if (this.parentId !== null) {
           formData.append('parent_comment', this.parentId)
@@ -445,7 +393,7 @@ export default {
 
         if (this.attachment) {
           if (this.attachment.type === 'image') {
-            // Convert data URL to blob
+
             const blob = this.dataURLtoBlob(this.attachment.data)
             formData.append('attachment', blob, this.attachment.name)
           } else {
@@ -488,9 +436,6 @@ export default {
 
     resetForm() {
       this.form = {
-        username: '',
-        email: '',
-        homepage: '',
         text: ''
       }
       this.removePreview()

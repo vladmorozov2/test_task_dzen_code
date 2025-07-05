@@ -21,6 +21,7 @@ class CommentSerializer(serializers.Serializer):
     )
     username = serializers.CharField(source="sender.username", read_only=True)
     attachment = serializers.FileField(required=False, allow_null=True)
+    email = serializers.EmailField(source="sender.email", read_only=True)
     ALLOWED_TAGS = ["i", "strong", "code", "a"]
     ALLOWED_ATTRS = ["href", "title"]
 

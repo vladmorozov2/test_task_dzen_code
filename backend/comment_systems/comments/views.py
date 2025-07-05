@@ -9,20 +9,17 @@ import math
 
 
 class CommentAPIView(APIView):
-    # authentication_classes = [JWTAuthentication]
+    authentication_classes = [JWTAuthentication]
     # permission_classes = [IsAuthenticatedOrReadOnly]
 
     def post(self, request):
         data = request.data.copy()
-        user_id = request.user.id if request.user.is_authenticated else None
-        if user_id:
-            data["user"] = user_id
+        user = request.user
 
-        print(
-            "Received data:", data, flush=True
-        )  # Debugging line to check incoming data
-        print("User ID:", user_id, flush=True) 
-        print('Headers:', request.headers, flush=True)
+        data["sender"] = user.id
+        data["username"] = user.username
+        data["email"] = user.email
+        data['homepage'] = user.homepage
         serializer = CommentSerializer(data=data)
         if serializer.is_valid():
             comment = serializer.save()

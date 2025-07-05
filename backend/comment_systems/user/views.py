@@ -10,9 +10,7 @@ class UserAPIView(APIView):
     authentication_classes = [JWTAuthentication]
 
     def get(self, request):
-        user_id = request.user.id if request.user.is_authenticated else None
-        print("User ID:", user_id, flush=True)
-        print("Headers:", request.headers, flush=True)
+        user_id = request.user.id
         user = User.objects.all().filter(id=user_id).first()
         serializer = UserSerializer(
             user,
