@@ -1,6 +1,6 @@
 <template>
     <form @submit.prevent="onSubmit" class="space-y-4">
-        <input v-model="email" type="email" placeholder="Email" required class="input" />
+        <input v-model="username" type="text" placeholder="Username" required class="input" />
         <input v-model="password" type="password" placeholder="Password" required class="input" />
         <button type="submit" class="btn">Login</button>
     </form>
@@ -11,14 +11,14 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
 
-const email = ref('')
+const username = ref('')
 const password = ref('')
 const auth = useAuthStore()
 const router = useRouter()
 
 const onSubmit = async () => {
     try {
-        await auth.login({ email: email.value, password: password.value })
+        await auth.login({ username: username.value, password: password.value })
         router.push('/')
     } catch (error) {
         alert('Login failed')

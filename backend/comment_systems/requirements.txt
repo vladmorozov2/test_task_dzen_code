@@ -6,3 +6,4 @@ daphne
 channels
 django-cors-headers
 redis
+djangorestframework-simplejwt
