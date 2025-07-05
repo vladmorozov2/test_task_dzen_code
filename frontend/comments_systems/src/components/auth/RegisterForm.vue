@@ -1,8 +1,10 @@
 <template>
   <form @submit.prevent="handleRegister">
-    <input v-model="username" placeholder="Username" required />
+    <input v-model="username" placeholder="Username" type="text" required />
     <input v-model="email" type="email" placeholder="Email" required />
+    <input v-model="homePageUrl" type="text" placeholder="Home Page URL" />
     <input v-model="password" type="password" placeholder="Password" required />
+    <input v-model="confirmPassword" type="password" placeholder="Confirm Password" required />
     <button type="submit">Register</button>
   </form>
 </template>
@@ -17,10 +19,12 @@ const email = ref('')
 const password = ref('')
 const auth = useAuthStore()
 const router = useRouter()
+const homePageUrl = ref('')
+const confirmPassword = ref('')
 
 const handleRegister = async () => {
   try {
-    await auth.register({ username: username.value, email: email.value, password: password.value })
+    await auth.register({ username: username.value, email: email.value, password: password.value, password_repeat: confirmPassword.value, home_page_url: homePageUrl.value })
     router.push('/login')
   } catch (e) {
     alert('Registration failed')
@@ -35,13 +39,13 @@ form {
   padding: 25px 30px;
   background-color: #fff;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   border: 1px solid #eaeaea;
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 form:hover {
-  box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
   transform: translateY(-3px);
 }
 
