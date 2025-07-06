@@ -74,9 +74,10 @@
 
 <script>
 import CommentItem from './CommentItem.vue'
-import CommentForm from './CommentForm.vue'
+import CommentForm from './CommentForm/CommentForm.vue'
 import SortIndicator from './SortIndicator.vue'
-import Lightbox from './Lightbox.vue'
+import Lightbox from './CommentForm/Lightbox.vue'
+
 
 export default {
   name: 'CommentList',

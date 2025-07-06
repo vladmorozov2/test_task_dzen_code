@@ -1,4 +1,5 @@
 <template>
+
   <form @submit.prevent="handleRegister">
     <input v-model="username" placeholder="Username" type="text" required />
     <input v-model="email" type="email" placeholder="Email" required />

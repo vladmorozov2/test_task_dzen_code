@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <h2>Register</h2>
+     <h1>Enter simple info for registration (no real password)</h1>
     <RegisterForm />
   </div>
 </template>

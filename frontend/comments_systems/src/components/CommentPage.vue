@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import CommentForm from '@/components/CommentForm.vue'
+import CommentForm from '@/components/CommentForm/CommentForm.vue'
 import CommentList from '@/components/CommentList.vue'
 import { fetchComments } from '@/services/commentService'
 

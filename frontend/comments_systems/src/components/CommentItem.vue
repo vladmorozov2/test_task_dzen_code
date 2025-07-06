@@ -46,8 +46,9 @@
 </template>
 
 <script>
-import CommentForm from './CommentForm.vue'
-import Lightbox from './Lightbox.vue'
+import CommentForm from './CommentForm/CommentForm.vue'
+import Lightbox from './CommentForm/Lightbox.vue'
+
 
 export default {
   name: 'CommentItem',
