@@ -5,6 +5,7 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 import re
+from .tasks import resize_comment_attachment
 
 
 class CommentSerializer(serializers.Serializer):
@@ -35,13 +36,7 @@ class CommentSerializer(serializers.Serializer):
 
         elif filename.endswith((".jpg", ".jpeg", ".png", ".gif")):
             try:
-                image = Image.open(file)
-                if image.width > 320 or image.height > 240:
-                    image.thumbnail((320, 240))
-                    buffer = BytesIO()
-                    image_format = image.format or "PNG"
-                    image.save(buffer, format=image_format)
-                    file = ContentFile(buffer.getvalue(), name=file.name)
+                Image.open(file)  # just validation
             except Exception:
                 raise serializers.ValidationError("Invalid image file")
             return file
@@ -124,7 +119,15 @@ class CommentSerializer(serializers.Serializer):
     def create(self, validated_data):
         parent_comment = validated_data.get("parent_comment")
         validated_data["is_reply"] = bool(parent_comment)
-        return Comment.objects.create(**validated_data)
+        comment = Comment.objects.create(**validated_data)
+
+        # Run image resize in background task
+        if comment.attachment and comment.attachment.name.lower().endswith(
+            (".jpg", ".jpeg", ".png", ".gif")
+        ):
+            resize_comment_attachment.delay(comment.id)
+
+        return comment
 
     def update(self, instance, validated_data):
         instance.text = validated_data.get("text", instance.text)

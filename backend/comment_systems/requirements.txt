@@ -7,3 +7,5 @@ channels
 django-cors-headers
 redis
 djangorestframework-simplejwt
+celery
+redis

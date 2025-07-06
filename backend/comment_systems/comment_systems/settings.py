@@ -165,3 +165,11 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER", "redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
