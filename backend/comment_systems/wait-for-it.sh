@@ -1,12 +1,12 @@
 #!/bin/sh
-# wait-for-it.sh — чекає поки порт буде доступним
+
 
 hostport=$1
 shift
 
 timeout=30
 
-# парсинг timeout -t
+
 while getopts t: opt; do
   case $opt in
     t) timeout=$OPTARG ;;

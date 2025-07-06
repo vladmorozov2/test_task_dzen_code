@@ -25,5 +25,5 @@ def resize_comment_attachment(comment_id):
                 comment.attachment.name, ContentFile(buffer.getvalue()), save=True
             )
     except Exception as e:
-        # Можна логувати
+  
         print(f"[resize_comment_attachment] Failed: {e}")

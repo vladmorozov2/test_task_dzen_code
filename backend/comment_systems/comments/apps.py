@@ -8,5 +8,3 @@ class CommentsConfig(AppConfig):
     def ready(self):
 
         from . import signals
-
-        print("CommentsConfig is ready and signals are imported.")

@@ -135,7 +135,6 @@ export default {
     }
   },
   methods: {
-    // Attachment handling methods
     isImageAttachment(attachmentPath) {
       if (!attachmentPath) return false
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
@@ -143,11 +142,11 @@ export default {
     },
     getFullAttachmentUrl(attachmentPath) {
       if (!attachmentPath) return ''
-      // Handle both full URLs and relative paths
+
       if (attachmentPath.startsWith('http')) {
         return attachmentPath
       }
-      // Use API base URL for attachments
+  
       return `${this.apiBaseUrl}${attachmentPath}`
     },
     getFileName(attachmentPath) {
@@ -155,7 +154,7 @@ export default {
       return attachmentPath.split('/').pop()
     },
 
-    // Comment methods
+    
     setSort(field) {
       if (this.sortField === field) {
         this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc'
@@ -188,7 +187,7 @@ export default {
       const wsUrl = this.wsBaseUrl;
 
 
-      // Close existing connection if any
+   
       if (this.ws) {
         this.ws.close();
       }
@@ -219,7 +218,7 @@ export default {
       this.ws.onclose = () => {
 
         this.wsConnected = false;
-        // Attempt reconnect after 3 seconds
+   
         setTimeout(() => this.connectWebSocket(), 3000);
       };
     }

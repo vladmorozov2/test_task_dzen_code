@@ -98,7 +98,7 @@ DATABASES = {
         },
     }
 }
-
+RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY')
 
 CHANNEL_LAYERS = {
     "default": {

@@ -6,6 +6,5 @@ from .consumers import notify_new_comment
 
 @receiver(post_save, sender=Comment)
 def comment_created(sender, instance, created, **kwargs):
-    print("comment_created signal triggered")
     if created:
         notify_new_comment(instance)

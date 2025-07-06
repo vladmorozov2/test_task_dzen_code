@@ -49,7 +49,6 @@ class CommentSerializer(serializers.Serializer):
     def validate_text(self, value):
         errors = []
 
-        # Простий парсер тегів через regex (не ідеально, але достатньо для базової валідації)
         tag_regex = re.compile(r"</?([a-z]+)(\s[^>]*)?>", re.IGNORECASE)
         tags = tag_regex.findall(value)
 
@@ -58,14 +57,12 @@ class CommentSerializer(serializers.Serializer):
             tag_name = tag_match[0].lower()
             attrs = tag_match[1]
 
-            # Перевірка тегів
             if tag_name not in self.ALLOWED_TAGS:
                 errors.append(f"Disallowed HTML tag: <{tag_name}>")
                 continue
 
-            # Перевірка атрибутів тільки для <a>
             if tag_name == "a":
-                # Перевірка, що атрибути лише href і title
+
                 if attrs:
                     attr_regex = re.compile(
                         r'([a-z-]+)\s*=\s*["\'][^"\']*["\']', re.IGNORECASE
@@ -77,7 +74,6 @@ class CommentSerializer(serializers.Serializer):
                                 f"Disallowed attribute in <a> tag: {attr_name}"
                             )
 
-                # Перевірка що href існує і є валідним посиланням
                 href_match = re.search(
                     r'href\s*=\s*["\']([^"\']*)["\']', attrs, re.IGNORECASE
                 )
@@ -88,12 +84,9 @@ class CommentSerializer(serializers.Serializer):
                     if not self.is_valid_url(href):
                         errors.append(f"Invalid URL in href attribute: {href}")
             else:
-                # Для інших тегів атрибути заборонені
+
                 if attrs.strip():
                     errors.append(f"<{tag_name}> tag should not have attributes")
-
-            # Для простоти — можна ігнорувати складну перевірку вкладення тегів,
-            # або додати додаткову логіку стека тут, якщо потрібно.
 
         if errors:
             raise serializers.ValidationError(errors)
@@ -103,10 +96,10 @@ class CommentSerializer(serializers.Serializer):
     def is_valid_url(self, url):
         if not url:
             return False
-        # Заборонити javascript: і інші небезпечні протоколи
+
         if url.strip().lower().startswith("javascript:"):
             return False
-        # Базова перевірка через Django URLField (примітивно)
+
         try:
             from django.core.validators import URLValidator
 
@@ -120,8 +113,6 @@ class CommentSerializer(serializers.Serializer):
         parent_comment = validated_data.get("parent_comment")
         validated_data["is_reply"] = bool(parent_comment)
         comment = Comment.objects.create(**validated_data)
-
-        # Run image resize in background task
         if comment.attachment and comment.attachment.name.lower().endswith(
             (".jpg", ".jpeg", ".png", ".gif")
         ):

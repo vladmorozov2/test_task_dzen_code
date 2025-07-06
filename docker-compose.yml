@@ -6,10 +6,10 @@ services:
     container_name: comments_mysql
     restart: always
     environment:
-      MYSQL_DATABASE: comments_db
-      MYSQL_USER: mysqluser
-      MYSQL_PASSWORD: mysqlpass
-      MYSQL_ROOT_PASSWORD: rootpass
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -46,12 +46,13 @@ services:
       - db
       - redis
     environment:
-      - DB_NAME=comments_db
-      - DB_USER=mysqluser
-      - DB_PASSWORD=mysqlpass
-      - DB_HOST=db
-      - DB_PORT=3306
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
     networks:
       - comment_network
 

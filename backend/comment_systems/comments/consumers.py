@@ -18,15 +18,12 @@ class CommentConsumer(AsyncWebsocketConsumer):
 
 
     async def new_comment(self, event):
-        print("New comment received:", event)
-        print("Comment:", event["comment"])
         comment = event["comment"]
         await self.send(
             text_data=json.dumps({"type": "new_comment", "comment": comment})
         )
     
 def notify_new_comment(comment_instance):
-    print("notify_new_comment called with:", comment_instance)
     channel_layer = get_channel_layer()
     serializer = CommentSerializer(comment_instance)
     async_to_sync(channel_layer.group_send)(

@@ -137,7 +137,7 @@ export default {
       if (this.recaptchaWidgetId !== null) return
 
       this.recaptchaWidgetId = window.grecaptcha.render(this.recaptchaContainerId, {
-        sitekey: '6LfpsHkrAAAAAOyPWrt6h5fp4h_ztoqWxAiXPAeu',
+        sitekey: '6Le_w3krAAAAAPQrQavEf7O4Wfs9kUmJdYYAY7u3',
         callback: this.onCaptchaVerified,
         'expired-callback': this.onCaptchaExpired,
       })
