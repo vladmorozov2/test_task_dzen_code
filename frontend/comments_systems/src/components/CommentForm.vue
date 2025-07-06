@@ -11,8 +11,7 @@
           <button type="button" @click="insertTag('code')" title="Code"><code>Code</code></button>
           <button type="button" @click="insertLink" title="Link">🔗</button>
         </div>
-        <textarea id="text" v-model="form.text" :class="{ error: errors.text || htmlErrors.length }" rows="5"
-          ref="textarea"></textarea>
+        <textarea id="text" v-model="form.text" :class="{ error: errors.text || htmlErrors.length }" rows="5" ref="textarea"></textarea>
         <div v-if="errors.text" class="error-message">{{ errors.text }}</div>
         <div v-if="htmlErrors.length" class="error-message">
           <ul>
@@ -41,7 +40,7 @@
 
       <!-- reCAPTCHA -->
       <div class="form-group">
-        <div id="recaptcha-container"></div>
+        <div :id="recaptchaContainerId"></div>
         <div v-if="captchaError" class="error-message">{{ captchaError }}</div>
       </div>
 
@@ -120,10 +119,11 @@ export default {
       captchaVerified: false,
       captchaError: '',
       recaptchaWidgetId: null,
+      recaptchaContainerId: 'recaptcha-container-' + Math.random().toString(36).substr(2, 9),
     }
   },
   mounted() {
-    if (window.grecaptcha) {
+    if (window.grecaptcha && window.grecaptcha.render) {
       this.renderRecaptcha()
     } else {
       window.vueRecaptchaOnLoad = () => {
@@ -133,7 +133,9 @@ export default {
   },
   methods: {
     renderRecaptcha() {
-      this.recaptchaWidgetId = window.grecaptcha.render('recaptcha-container', {
+      if (this.recaptchaWidgetId !== null) return
+
+      this.recaptchaWidgetId = window.grecaptcha.render(this.recaptchaContainerId, {
         sitekey: '6LfpsHkrAAAAAOyPWrt6h5fp4h_ztoqWxAiXPAeu',
         callback: this.onCaptchaVerified,
         'expired-callback': this.onCaptchaExpired,
@@ -163,7 +165,6 @@ export default {
         this.errors.text = 'Comment text is required.'
       }
 
-      // Додаткові HTML-помилки, якщо потрібно (приклад)
       const invalidTags = this.validateHTML(this.form.text)
       if (invalidTags.length) {
         this.htmlErrors = invalidTags
@@ -173,7 +174,6 @@ export default {
     },
 
     validateHTML(text) {
-      // Простий приклад перевірки теги (тут можна розширити)
       const errors = []
       if (/<script/i.test(text)) {
         errors.push('Script tags are not allowed.')
@@ -213,7 +213,7 @@ export default {
 
       this.$nextTick(() => {
         textarea.focus()
-        textarea.selectionStart = start + 9 + url.length // позиція після вставки
+        textarea.selectionStart = start + 9 + url.length
         textarea.selectionEnd = start + 9 + url.length + selected.length
       })
     },
@@ -272,8 +272,6 @@ export default {
     },
 
     renderPreview() {
-      // Можна додати безпечний парсинг або бібліотеку типу DOMPurify,
-      // тут простий варіант просто повертаємо текст з тегами
       return this.form.text
     },
 
@@ -328,7 +326,6 @@ export default {
           }
         }
 
-        // Append captcha token
         formData.append('captcha', this.captchaResponse)
 
         await api.post('/api/comments/', formData)
@@ -336,7 +333,6 @@ export default {
         this.resetForm()
         this.$emit('submitted')
 
-        // Reset captcha widget
         if (this.recaptchaWidgetId !== null) {
           window.grecaptcha.reset(this.recaptchaWidgetId)
         }
@@ -364,7 +360,6 @@ export default {
   },
 }
 </script>
-
 <style scoped>
 .comment-form {
   background-color: #ffffff;
