@@ -1,22 +1,18 @@
-<!-- src/pages/CommentsPage.vue -->
 <template>
   <div>
-    <CommentForm @comment-added="fetchComments" ref="commentForm" />
+    <CommentForm @comment-added="loadComments" ref="commentForm" />
     <CommentList ref="commentList" :comments="comments" :pagination="pagination" @sort-changed="handleSortChange"
       @page-changed="handlePageChange" />
-    <div class="pagination-controls">
-      <button :disabled="pagination.currentPage >= pagination.totalPages" @click="loadNextPage">
-        Load more
-      </button>
+    <div v-if="pagination.currentPage < pagination.totalPages" class="pagination-controls">
+      <button @click="loadNextPage">Load more</button>
     </div>
-
   </div>
 </template>
 
 <script>
 import CommentForm from '@/components/CommentForm.vue'
 import CommentList from '@/components/CommentList.vue'
-import api from '../axios'
+import { fetchComments } from '@/services/commentService'
 
 export default {
   components: { CommentForm, CommentList },
@@ -26,64 +22,59 @@ export default {
       pagination: {
         currentPage: 1,
         totalPages: 1,
-        perPage: 25
+        perPage: 25,
       },
       sort: {
         field: 'created_at',
-        direction: 'desc'
-      }
+        direction: 'desc',
+      },
     }
   },
   mounted() {
-    this.fetchComments()
+    this.loadComments()
   },
   methods: {
-    async fetchComments(append = false) {
+    async loadComments(append = false) {
       try {
-        const params = {
+        const data = await fetchComments({
           page: this.pagination.currentPage,
-          per_page: this.pagination.perPage,
-          sort_by: this.sort.field,
-          sort_dir: this.sort.direction,
-        }
-        const response = await api.get('/api/comments/', { params })
+          perPage: this.pagination.perPage,
+          sort: this.sort,
+        })
 
-        if (append) {
-          this.comments = [...this.comments, ...response.data.data]
-        } else {
-          this.comments = response.data.data
-        }
+        this.comments = append
+          ? [...this.comments, ...data.data]
+          : data.data
 
-        this.pagination.totalPages = response.data.meta.last_page
-        this.pagination.currentPage = response.data.meta.current_page
-        this.pagination.perPage = response.data.meta.per_page
+        Object.assign(this.pagination, {
+          currentPage: data.meta.current_page,
+          totalPages: data.meta.last_page,
+          perPage: data.meta.per_page,
+        })
       } catch (error) {
         console.error('Error fetching comments:', error)
       }
     },
+
     async loadNextPage() {
       if (this.pagination.currentPage >= this.pagination.totalPages) return
-
       this.pagination.currentPage += 1
-      await this.fetchComments(true)
+      await this.loadComments(true)
     },
-    handleReplyToComment(comment) {
-      this.$refs.commentForm.$el.scrollIntoView({ behavior: 'smooth' });
-      this.$refs.commentForm.setParentComment(comment.id);
-      this.$refs.commentForm.prefillText(`>>${comment.id} `);
-    },
+
     handleSortChange(sortConfig) {
       this.sort = sortConfig
-      this.fetchComments()
+      this.pagination.currentPage = 1
+      this.loadComments()
     },
+
     handlePageChange(page) {
       this.pagination.currentPage = page
-      this.fetchComments()
-    }
-  }
+      this.loadComments()
+    },
+  },
 }
 </script>
-
 
 <style scoped>
 .pagination-controls {
