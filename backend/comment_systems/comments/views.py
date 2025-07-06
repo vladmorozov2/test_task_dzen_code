@@ -1,3 +1,4 @@
+import requests
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -8,23 +9,51 @@ from .serializers import CommentSerializer
 from .models import Comment
 import math
 
+# Put your secret key here (get it from Google reCAPTCHA admin console)
+RECAPTCHA_SECRET_KEY = "6LfpsHkrAAAAAHX_2JsEynL0hgnMOwKkoaIYslzH"
 
 class CommentAPIView(APIView):
     authentication_classes = [JWTAuthentication]
 
+    def verify_captcha(self, token, remote_ip=None):
+        """Verify captcha token with Google"""
+        url = "https://www.google.com/recaptcha/api/siteverify"
+        data = {
+            'secret': RECAPTCHA_SECRET_KEY,
+            'response': token,
+        }
+        if remote_ip:
+            data['remoteip'] = remote_ip
+
+        try:
+            r = requests.post(url, data=data)
+            result = r.json()
+            return result.get("success", False)
+        except Exception as e:
+            # Log the exception if needed
+            return False
+
     def post(self, request):
+        captcha_token = request.data.get('captcha')
+        if not captcha_token:
+            return Response({"error": "Captcha token is required."}, status=400)
+
+        user_ip = request.META.get('REMOTE_ADDR')
+        if not self.verify_captcha(captcha_token, user_ip):
+            return Response({"error": "Captcha verification failed."}, status=400)
+
         data = request.data.copy()
         user = request.user
 
         data["sender"] = user.id
         data["username"] = user.username
         data["email"] = user.email
-        data['homepage'] = user.homepage
+        data['homepage'] = getattr(user, 'homepage', '')  # safe access
+
         serializer = CommentSerializer(data=data)
         if serializer.is_valid():
             comment = serializer.save()
-            # Очищаємо кеш після створення нового коментаря,
-            # щоб get отримував оновлені дані
+            # Clear cache after creating a new comment so GET gets fresh data
             cache.clear()
             return Response(
                 {"message": "Comment created successfully", "comment_id": comment.id},

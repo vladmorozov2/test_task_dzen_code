@@ -9,3 +9,4 @@ redis
 djangorestframework-simplejwt
 celery
 django-redis
+requests

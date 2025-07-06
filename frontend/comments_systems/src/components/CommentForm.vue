@@ -3,7 +3,6 @@
     <h2>{{ parentId !== null ? 'Reply to Comment' : 'Add New Comment' }}</h2>
 
     <form @submit.prevent="submitForm">
-
       <div class="form-group">
         <label for="text">Comment*</label>
         <div class="editor-toolbar">
@@ -12,8 +11,8 @@
           <button type="button" @click="insertTag('code')" title="Code"><code>Code</code></button>
           <button type="button" @click="insertLink" title="Link">🔗</button>
         </div>
-        <textarea id="text" v-model="form.text" :class="{ error: errors.text || htmlErrors.length }"
-          rows="5"></textarea>
+        <textarea id="text" v-model="form.text" :class="{ error: errors.text || htmlErrors.length }" rows="5"
+          ref="textarea"></textarea>
         <div v-if="errors.text" class="error-message">{{ errors.text }}</div>
         <div v-if="htmlErrors.length" class="error-message">
           <ul>
@@ -38,6 +37,12 @@
             <div class="file-size">{{ formatFileSize(attachment.size) }}</div>
           </div>
         </div>
+      </div>
+
+      <!-- reCAPTCHA -->
+      <div class="form-group">
+        <div id="recaptcha-container"></div>
+        <div v-if="captchaError" class="error-message">{{ captchaError }}</div>
       </div>
 
       <!-- Preview Button -->
@@ -94,13 +99,13 @@ export default {
   props: {
     parentId: {
       type: Number,
-      default: null
-    }
+      default: null,
+    },
   },
   data() {
     return {
       form: {
-        text: ''
+        text: '',
       },
       errors: {},
       htmlErrors: [],
@@ -110,199 +115,155 @@ export default {
       showPreview: false,
       isSubmitting: false,
       lightboxVisible: false,
-      currentImage: null
+      currentImage: null,
+      captchaResponse: null,
+      captchaVerified: false,
+      captchaError: '',
+      recaptchaWidgetId: null,
+    }
+  },
+  mounted() {
+    if (window.grecaptcha) {
+      this.renderRecaptcha()
+    } else {
+      window.vueRecaptchaOnLoad = () => {
+        this.renderRecaptcha()
+      }
     }
   },
   methods: {
-    validateHTML() {
-      this.htmlErrors = []
-      const text = this.form.text
-
-      const allowedTags = ['a', 'code', 'i', 'strong']
-      const tagRegex = /<\/?([a-z]+)[^>]*>/gi
-      let match
-      const foundTags = new Set()
-
-      while ((match = tagRegex.exec(text)) !== null) {
-        const tagName = match[1].toLowerCase()
-        if (!allowedTags.includes(tagName)) {
-          this.htmlErrors.push(`Disallowed HTML tag: <${tagName}>`)
-        }
-        foundTags.add(tagName)
-      }
-
-      // 2. Check for proper tag nesting and closing
-      const stack = []
-      const fullTagRegex = /<\/?([a-z]+)[^>]*>/gi
-      let result
-
-      while ((result = fullTagRegex.exec(text)) !== null) {
-        const fullTag = result[0]
-        const tagName = result[1].toLowerCase()
-
-        // Validate attributes for this tag
-        const attrErrors = this.validateTagAttributes(fullTag, tagName)
-        if (attrErrors.length) {
-          this.htmlErrors.push(...attrErrors)
-        }
-
-        if (fullTag.startsWith('</')) {
-          // Closing tag
-          if (stack.length === 0) {
-            this.htmlErrors.push(`Unmatched closing tag: </${tagName}>`)
-          } else if (stack[stack.length - 1] !== tagName) {
-            this.htmlErrors.push(`Tag mismatch: expected </${stack[stack.length - 1]}>, found </${tagName}>`)
-          } else {
-            stack.pop()
-          }
-        } else {
-          // Opening tag
-          stack.push(tagName)
-        }
-      }
-
-
-      if (stack.length > 0) {
-        stack.forEach(tag => {
-          this.htmlErrors.push(`Unclosed tag: <${tag}>`)
-        })
-      }
-
-      return this.htmlErrors.length === 0
+    renderRecaptcha() {
+      this.recaptchaWidgetId = window.grecaptcha.render('recaptcha-container', {
+        sitekey: '6LfpsHkrAAAAAOyPWrt6h5fp4h_ztoqWxAiXPAeu',
+        callback: this.onCaptchaVerified,
+        'expired-callback': this.onCaptchaExpired,
+      })
     },
 
-    validateTagAttributes(tag, tagName) {
+    onCaptchaVerified(token) {
+      this.captchaResponse = token
+      this.captchaVerified = true
+      this.captchaError = ''
+    },
+
+    onCaptchaExpired() {
+      this.captchaResponse = null
+      this.captchaVerified = false
+    },
+
+    togglePreview() {
+      this.showPreview = !this.showPreview
+    },
+
+    validateForm() {
+      this.errors = {}
+      this.htmlErrors = []
+
+      if (!this.form.text.trim()) {
+        this.errors.text = 'Comment text is required.'
+      }
+
+      // Додаткові HTML-помилки, якщо потрібно (приклад)
+      const invalidTags = this.validateHTML(this.form.text)
+      if (invalidTags.length) {
+        this.htmlErrors = invalidTags
+      }
+
+      return Object.keys(this.errors).length === 0 && this.htmlErrors.length === 0
+    },
+
+    validateHTML(text) {
+      // Простий приклад перевірки теги (тут можна розширити)
       const errors = []
-
-
-      if (tagName === 'a') {
-
-        const hasHref = /href=["']([^"']*)["']/i.test(tag)
-        if (!hasHref) {
-          errors.push('<a> tag must have href attribute')
-        }
-
-
-        const allowedAttrs = ['href', 'title']
-        const attrRegex = /\s([a-z-]+)=["']/gi
-        let attrMatch
-
-        while ((attrMatch = attrRegex.exec(tag)) !== null) {
-          const attrName = attrMatch[1].toLowerCase()
-          if (!allowedAttrs.includes(attrName)) {
-            errors.push(`Disallowed attribute in <a> tag: ${attrName}`)
-          }
-        }
-
-
-        const hrefMatch = tag.match(/href=["']([^"']*)["']/i)
-        if (hrefMatch && !this.isValidUrl(hrefMatch[1])) {
-          errors.push(`Invalid URL in href attribute: ${hrefMatch[1]}`)
-        }
+      if (/<script/i.test(text)) {
+        errors.push('Script tags are not allowed.')
       }
-      else if (tag.includes('=')) {
-        errors.push(`<${tagName}> tag should not have any attributes`)
-      }
-
       return errors
     },
 
-    isValidUrl(url) {
-      if (!url) return false
+    insertTag(tag) {
+      const textarea = this.$refs.textarea
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selected = this.form.text.substring(start, end)
+      const before = this.form.text.substring(0, start)
+      const after = this.form.text.substring(end)
 
+      this.form.text = before + `<${tag}>` + selected + `</${tag}>` + after
 
-      if (url.trim().toLowerCase().startsWith('javascript:')) {
-        return false
-      }
+      this.$nextTick(() => {
+        textarea.focus()
+        textarea.selectionStart = start + tag.length + 2
+        textarea.selectionEnd = end + tag.length + 2
+      })
+    },
 
-      try {
+    insertLink() {
+      const url = prompt('Enter the URL')
+      if (!url) return
 
-        new URL(url)
-        return true
-      } catch {
-        return false
-      }
+      const textarea = this.$refs.textarea
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selected = this.form.text.substring(start, end) || 'link text'
+      const before = this.form.text.substring(0, start)
+      const after = this.form.text.substring(end)
+
+      this.form.text = before + `<a href="${url}">${selected}</a>` + after
+
+      this.$nextTick(() => {
+        textarea.focus()
+        textarea.selectionStart = start + 9 + url.length // позиція після вставки
+        textarea.selectionEnd = start + 9 + url.length + selected.length
+      })
     },
 
     handleFileUpload(event) {
+      this.fileError = ''
       const file = event.target.files[0]
-      if (!file) return
+      if (!file) {
+        this.attachment = null
+        this.previewImage = null
+        return
+      }
 
       const validImageTypes = ['image/jpeg', 'image/png', 'image/gif']
-      const maxImageSize = 100 * 1024
+      const validTextTypes = ['text/plain']
 
+      if (
+        !validImageTypes.includes(file.type) &&
+        !validTextTypes.includes(file.type)
+      ) {
+        this.fileError = 'Unsupported file type. Allowed: jpeg, png, gif, txt.'
+        this.attachment = null
+        this.previewImage = null
+        this.$refs.fileInput.value = ''
+        return
+      }
 
-      this.previewImage = null
-      this.attachment = null
-      this.fileError = ''
+      this.attachment = {
+        name: file.name,
+        size: file.size,
+        type: validImageTypes.includes(file.type) ? 'image' : 'text',
+      }
 
-      if (validImageTypes.includes(file.type)) {
-        if (file.size > maxImageSize) {
-          this.fileError = 'Image size exceeds 100KB limit'
-          return
-        }
-
-        const img = new Image()
+      if (this.attachment.type === 'image') {
         const reader = new FileReader()
-
-        reader.onload = (e) => {
-          img.src = e.target.result
-
-          img.onload = () => {
-
-            const maxWidth = 320
-            const maxHeight = 240
-            let width = img.width
-            let height = img.height
-
-            if (width > maxWidth || height > maxHeight) {
-              const ratio = Math.min(maxWidth / width, maxHeight / height)
-              width = Math.floor(width * ratio)
-              height = Math.floor(height * ratio)
-
-              const canvas = document.createElement('canvas')
-              canvas.width = width
-              canvas.height = height
-              const ctx = canvas.getContext('2d')
-              ctx.drawImage(img, 0, 0, width, height)
-
-              this.previewImage = canvas.toDataURL(file.type)
-            } else {
-              this.previewImage = e.target.result
-            }
-
-            this.attachment = {
-              type: 'image',
-              name: file.name,
-              size: file.size,
-              data: this.previewImage
-            }
-          }
+        reader.onload = e => {
+          this.attachment.data = e.target.result
+          this.previewImage = e.target.result
         }
-
         reader.readAsDataURL(file)
-      } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
-        if (file.size > 100 * 1024) {
-          this.fileError = 'Text file size exceeds 100KB limit'
-          return
-        }
-
-        this.attachment = {
-          type: 'text',
-          name: file.name,
-          size: file.size,
-          data: null
-        }
       } else {
-        this.fileError = 'Invalid file type. Only JPG, PNG, GIF, or TXT allowed'
+        this.previewImage = null
       }
     },
 
     removePreview() {
-      this.previewImage = null
       this.attachment = null
-      this.$refs.fileInput.value = ''
+      this.previewImage = null
       this.fileError = ''
+      if (this.$refs.fileInput) this.$refs.fileInput.value = ''
     },
 
     openLightbox(imageUrl) {
@@ -310,115 +271,17 @@ export default {
       this.lightboxVisible = true
     },
 
-    formatFileSize(bytes) {
-      if (bytes === 0) return '0 Bytes'
-      const k = 1024
-      const sizes = ['Bytes', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i])
-    },
-
-    insertTag(tag) {
-      const textarea = document.getElementById('text')
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const selectedText = this.form.text.substring(start, end)
-
-      let newText = ''
-      if (tag === 'a') {
-        newText = `<a href="https://example.com" title="">${selectedText || 'link'}</a>`
-      } else {
-        newText = `<${tag}>${selectedText || tag}</${tag}>`
-      }
-
-
-      this.form.text =
-        this.form.text.substring(0, start) +
-        newText +
-        this.form.text.substring(end)
-
-      setTimeout(() => {
-        textarea.selectionStart = start + newText.length
-        textarea.selectionEnd = start + newText.length
-        textarea.focus()
-      }, 0)
-    },
-
-    insertLink() {
-      this.insertTag('a')
-    },
-
-    togglePreview() {
-      this.showPreview = !this.showPreview
-    },
-
     renderPreview() {
+      // Можна додати безпечний парсинг або бібліотеку типу DOMPurify,
+      // тут простий варіант просто повертаємо текст з тегами
       return this.form.text
     },
 
-    validateForm() {
-      this.errors = {}
-      this.htmlErrors = []
-      let isValid = true
-
-
-
-
-      if (!this.form.text) {
-        this.errors.text = 'Comment text is required'
-        isValid = false
-      } else {
-        if (!this.validateHTML()) {
-          isValid = false
-        }
-      }
-
-      return isValid
-    },
-
-    async submitForm() {
-      if (!this.validateForm()) return
-
-      this.isSubmitting = true
-
-      try {
-        const formData = new FormData()
-
-        formData.append('text', this.form.text)
-
-
-        if (this.parentId !== null) {
-          formData.append('parent_comment', this.parentId)
-        }
-
-        if (this.attachment) {
-          if (this.attachment.type === 'image') {
-
-            const blob = this.dataURLtoBlob(this.attachment.data)
-            formData.append('attachment', blob, this.attachment.name)
-          } else {
-            // For text files, we need to get the file from input
-            const fileInput = this.$refs.fileInput
-            if (fileInput.files.length > 0) {
-              formData.append('attachment', fileInput.files[0])
-            }
-          }
-        }
-
-        await api.post('/api/comments/', formData,)
-
-        this.resetForm()
-        this.$emit('submitted')
-      } catch (error) {
-        if (error.response && error.response.data.errors) {
-          this.errors = error.response.data.errors
-        } else {
-          console.error('Error submitting comment:', error)
-          this.errors.text = 'Error submitting comment. Please try again.'
-        }
-      } finally {
-        this.isSubmitting = false
-      }
+    formatFileSize(size) {
+      if (size < 1024) return size + ' bytes'
+      else if (size < 1024 * 1024)
+        return (size / 1024).toFixed(1) + ' KB'
+      else return (size / (1024 * 1024)).toFixed(1) + ' MB'
     },
 
     dataURLtoBlob(dataURL) {
@@ -434,15 +297,71 @@ export default {
       return new Blob([ab], { type: mimeString })
     },
 
-    resetForm() {
-      this.form = {
-        text: ''
+    async submitForm() {
+      this.captchaError = ''
+      if (!this.captchaVerified) {
+        this.captchaError = 'Please verify that you are not a robot.'
+        return
       }
+
+      if (!this.validateForm()) return
+
+      this.isSubmitting = true
+
+      try {
+        const formData = new FormData()
+
+        formData.append('text', this.form.text)
+        if (this.parentId !== null) {
+          formData.append('parent_comment', this.parentId)
+        }
+
+        if (this.attachment) {
+          if (this.attachment.type === 'image') {
+            const blob = this.dataURLtoBlob(this.attachment.data)
+            formData.append('attachment', blob, this.attachment.name)
+          } else {
+            const fileInput = this.$refs.fileInput
+            if (fileInput.files.length > 0) {
+              formData.append('attachment', fileInput.files[0])
+            }
+          }
+        }
+
+        // Append captcha token
+        formData.append('captcha', this.captchaResponse)
+
+        await api.post('/api/comments/', formData)
+
+        this.resetForm()
+        this.$emit('submitted')
+
+        // Reset captcha widget
+        if (this.recaptchaWidgetId !== null) {
+          window.grecaptcha.reset(this.recaptchaWidgetId)
+        }
+        this.captchaResponse = null
+        this.captchaVerified = false
+      } catch (error) {
+        if (error.response && error.response.data.errors) {
+          this.errors = error.response.data.errors
+        } else {
+          console.error('Error submitting comment:', error)
+          this.errors.text = 'Error submitting comment. Please try again.'
+        }
+      } finally {
+        this.isSubmitting = false
+      }
+    },
+
+    resetForm() {
+      this.form = { text: '' }
       this.removePreview()
       this.showPreview = false
       this.htmlErrors = []
-    }
-  }
+      this.errors = {}
+    },
+  },
 }
 </script>
 
