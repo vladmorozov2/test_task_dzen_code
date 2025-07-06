@@ -186,17 +186,17 @@ export default {
     },
     connectWebSocket() {
       const wsUrl = this.wsBaseUrl;
-      console.log('Connecting to WebSocket at:', wsUrl)
-      
+
+
       // Close existing connection if any
       if (this.ws) {
         this.ws.close();
       }
-      
+
       this.ws = new WebSocket(`${wsUrl}/ws/comments/`);
-      console.log('WebSocket instance created:', this.ws);
+
       this.ws.onopen = () => {
-        console.log('WebSocket connected')
+
         this.wsConnected = true;
       };
 
@@ -204,8 +204,6 @@ export default {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'new_comment') {
-            console.log('New comment received:', data.comment);
-            // Add to beginning of list
             this.localComments = [data.comment, ...this.localComments];
           }
         } catch (e) {
@@ -219,7 +217,7 @@ export default {
       };
 
       this.ws.onclose = () => {
-        console.log('WebSocket closed');
+
         this.wsConnected = false;
         // Attempt reconnect after 3 seconds
         setTimeout(() => this.connectWebSocket(), 3000);

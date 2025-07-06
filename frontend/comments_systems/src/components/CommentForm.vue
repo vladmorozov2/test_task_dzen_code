@@ -11,7 +11,8 @@
           <button type="button" @click="insertTag('code')" title="Code"><code>Code</code></button>
           <button type="button" @click="insertLink" title="Link">🔗</button>
         </div>
-        <textarea id="text" v-model="form.text" :class="{ error: errors.text || htmlErrors.length }" rows="5" ref="textarea"></textarea>
+        <textarea id="text" v-model="form.text" :class="{ error: errors.text || htmlErrors.length }" rows="5"
+          ref="textarea"></textarea>
         <div v-if="errors.text" class="error-message">{{ errors.text }}</div>
         <div v-if="htmlErrors.length" class="error-message">
           <ul>
